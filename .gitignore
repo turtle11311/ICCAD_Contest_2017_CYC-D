@@ -1,0 +1,5 @@
+# VS Code workspace configure
+.vscode/
+
+# Visual Studio project folder
+.vs/
