@@ -19,6 +19,7 @@ using std::endl;
 // Variable
 std::map<std::string, Pattern<>* > varMap;
 std::vector<std::string*> nameList;
+std::map<std::string, unsigned int> parameterTable;
 
 %}
 
@@ -33,11 +34,13 @@ std::vector<std::string*> nameList;
 %token k_INPUT "input"
 %token k_OUTPUT "output"
 %token k_REG "reg"
+%token k_PARAMETER "parameter"
 
 %token <string> DEC_INTEGER
 %token <string> IDENTIFIER
 
 %type <string> port_identifier
+%type <string> parameter_identifier
 %type <integer> number
 %type <range> range
 
@@ -62,6 +65,7 @@ module_item_list
 
 module_item
         : port_declaration ';'
+        | parameter_declaration ';'
         ;
 
 port_declaration
@@ -112,6 +116,22 @@ range
         }
         ;
 
+parameter_declaration
+        : "parameter" parameter_assignment_list
+        ;
+
+parameter_assignment_list
+        : parameter_assignment_list ',' parameter_assignment
+        | parameter_assignment
+        ;
+
+parameter_assignment
+        : parameter_identifier '=' number
+        {
+            parameterTable[*$1] = $3;
+        }
+        ;
+
 number
         : DEC_INTEGER
         {
@@ -120,6 +140,10 @@ number
         ;
 
 port_identifier
+        : IDENTIFIER { $$ = $1; }
+        ;
+
+parameter_identifier
         : IDENTIFIER { $$ = $1; }
         ;
 

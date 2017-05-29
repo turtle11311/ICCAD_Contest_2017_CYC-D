@@ -13,6 +13,7 @@ extern int yyparse(void);
 
 extern std::map<std::string, Pattern<>* > varMap;
 extern std::vector<std::string*> nameList;
+extern std::map<std::string, unsigned int> parameterTable;
 
 int main (int argc, const char* argv[])
 {
