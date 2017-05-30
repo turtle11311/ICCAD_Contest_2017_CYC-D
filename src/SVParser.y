@@ -2,6 +2,7 @@
 #include "SVParser.hpp"
 #include <cstdio>
 #include <iostream>
+#include <list>
 #include <string>
 #include <map>
 #include <vector>
@@ -20,6 +21,10 @@ using std::endl;
 std::map<std::string, Pattern<>* > varMap;
 std::vector<std::string*> nameList;
 std::map<std::string, unsigned int> parameterTable;
+
+Transition trans;
+std::list<Transition> transList;
+std::map<int, std::list<Transition> > fsm;
 
 %}
 
@@ -70,7 +75,7 @@ std::map<std::string, unsigned int> parameterTable;
 %nonassoc LOWER_THAN_ELSE
 %nonassoc "else"
 
-%destructor { delete $$; } <string> <range>
+%destructor { delete $$; } <string> <range> <pattern>
 
 %start source_text
 
@@ -209,6 +214,9 @@ case_list
 
 case
         : parameter_identifier ':' casex_contruct
+        {
+            fsm[parameterTable[*$1]] = std::move(transList);
+        }
         ;
 
 casex_contruct
@@ -217,12 +225,24 @@ casex_contruct
 
 casex_list
         : casex_list casex
+        {
+            transList.push_back(trans);
+        }
         | casex
+        {
+            transList.clear();
+            transList.push_back(trans);
+        }
         ;
 
 casex
         : BIT_LABEL ':' "begin" port_identifier '=' parameter_identifier ';'
           port_identifier '=' bit_pattern ';' "end"
+        {
+            trans.pattern = *$1;
+            trans.nstate = parameterTable[*$6];
+            trans.out = *$10;
+        }
         ;
 
 non_blocking_assignment
