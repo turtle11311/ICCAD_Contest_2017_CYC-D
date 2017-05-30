@@ -26,13 +26,17 @@ Transition trans;
 std::list<Transition> transList;
 std::map<int, std::list<Transition> > fsm;
 
+Assertion asrt;
+std::list<Assertion> asrtList;
+
 %}
 
 %union {
   std::string* string;
-  SVParser::range* range;
+  SVParser::Range* range;
   SVParser::Pattern<>* pattern;
   unsigned int integer;
+  SVParser::SignalChange sig_ch;
 }
 
 %token k_MODULE "module"
@@ -65,12 +69,14 @@ std::map<int, std::list<Transition> > fsm;
 %token <string> IDENTIFIER
 %token <pattern> BIT_LABEL
 
+%type <integer> signal_change_identifier
 %type <string> assertion_identifier
 %type <string> port_identifier
 %type <string> parameter_identifier
 %type <integer> number
 %type <range> range
 %type <pattern> bit_pattern
+%type <sig_ch> signal_change
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc "else"
@@ -141,11 +147,11 @@ port_identifier_list
 range
         : '[' number ':' number ']'
         {
-            $$ = new range($2, $4);
+            $$ = new Range($2, $4);
         }
         | '[' number ']'
         {
-            $$ = new range($2);
+            $$ = new Range($2);
         }
         ;
 
@@ -266,10 +272,20 @@ assertion_property_statement
 
 property_block
         : '@' '(' event_expression ')' signal_change '|' '-' '>' '#' '#' range signal_change
+        {
+            asrt.trigger = $5;
+            asrt.event = $12;
+            asrt.time = *$11;
+            asrtList.push_back(asrt);
+        }
         ;
 
 signal_change
         : signal_change_identifier '(' port_identifier range ')'
+        {
+            $$.change = $1;
+            $$.target = &(*varMap[*$3])[$4->first];
+        }
         ;
 
 action_block
@@ -292,8 +308,8 @@ edge_identifier
         ;
 
 signal_change_identifier
-        : "$rose"
-        | "$fell"
+        : "$rose" { $$ = 1; }
+        | "$fell" { $$ = 0; }
         ;
 
 assertion_identifier

@@ -1,3 +1,4 @@
+#pragma once
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -8,12 +9,12 @@
 namespace SVParser
 {
 
-struct range : public std::pair<size_t, size_t>
+struct Range : public std::pair<size_t, size_t>
 {
   public:
-    range(size_t pos)
+    Range(size_t pos = 0)
         : pair(pos, pos) {}
-    range(size_t pos1, size_t pos2)
+    Range(size_t pos1, size_t pos2)
         : pair(pos1, pos2) {}
     inline size_t length() { return first - second + 1; }
 };
@@ -90,6 +91,17 @@ struct Transition {
     Pattern<> pattern;
     int nstate;
     Pattern<> out;
+};
+
+struct SignalChange {
+    unsigned int change;
+    unsigned short* target;
+};
+
+struct Assertion {
+    SignalChange trigger;
+    SignalChange event;
+    Range time;
 };
 
 }
