@@ -43,10 +43,14 @@ std::map<std::string, unsigned int> parameterTable;
 %token k_OR "or"
 %token k_IF "if"
 %token k_ELSE "else"
+%token k_CASE "case"
+%token k_CASEX "casex"
+%token k_ENDCASE "endcase"
 
 
 %token <string> DEC_INTEGER
 %token <string> IDENTIFIER
+%token <string> BIT_LABEL
 
 %type <string> port_identifier
 %type <string> parameter_identifier
@@ -168,6 +172,7 @@ statement_list
 
 statement
         : if_construct
+        | case_contruct
         | non_blocking_assignment ';'
         ;
 
@@ -176,8 +181,39 @@ if_construct
         | "if" '(' port_identifier ')' sequential_block "else" sequential_block
         ;
 
+case_contruct
+        : "case" '(' port_identifier ')' case_list "endcase"
+        ;
+
+case_list
+        : case_list case
+        | case
+        ;
+
+case
+        : parameter_identifier ':' casex_contruct
+        ;
+
+casex_contruct
+        : "casex" '(' port_identifier ')' casex_list "endcase"
+        ;
+
+casex_list
+        : casex_list casex
+        | casex
+        ;
+
+casex
+        : BIT_LABEL ':' "begin" port_identifier '=' parameter_identifier ';'
+          port_identifier '=' bit_pattern ';' "end"
+        ;
+
 non_blocking_assignment
         : port_identifier '<' '=' port_identifier
+        ;
+
+bit_pattern
+        : DEC_INTEGER
         ;
 
 number
