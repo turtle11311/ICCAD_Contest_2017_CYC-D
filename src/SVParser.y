@@ -26,6 +26,7 @@ std::map<std::string, unsigned int> parameterTable;
 %union {
   std::string* string;
   SVParser::range* range;
+  SVParser::Pattern<>* pattern;
   unsigned int integer;
 }
 
@@ -54,15 +55,17 @@ std::map<std::string, unsigned int> parameterTable;
 
 
 %token STRING
+%token <string> BIN_INTEGER
 %token <string> DEC_INTEGER
 %token <string> IDENTIFIER
-%token <string> BIT_LABEL
+%token <pattern> BIT_LABEL
 
 %type <string> assertion_identifier
 %type <string> port_identifier
 %type <string> parameter_identifier
 %type <integer> number
 %type <range> range
+%type <pattern> bit_pattern
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc "else"
@@ -227,7 +230,10 @@ non_blocking_assignment
         ;
 
 bit_pattern
-        : DEC_INTEGER
+        : BIN_INTEGER
+        {
+            $$ = new Pattern<>(*$1);
+        }
         ;
 
 assertion_rule
