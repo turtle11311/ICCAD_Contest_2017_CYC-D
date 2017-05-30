@@ -46,12 +46,19 @@ std::map<std::string, unsigned int> parameterTable;
 %token k_CASE "case"
 %token k_CASEX "casex"
 %token k_ENDCASE "endcase"
+%token k_ASSERT "assert"
+%token k_PROPERTY "property"
+%token k_ROSE "$rose"
+%token k_FELL "$fell"
+%token k_DISPLAY "$display"
 
 
+%token STRING
 %token <string> DEC_INTEGER
 %token <string> IDENTIFIER
 %token <string> BIT_LABEL
 
+%type <string> assertion_identifier
 %type <string> port_identifier
 %type <string> parameter_identifier
 %type <integer> number
@@ -83,6 +90,7 @@ module_item
         : port_declaration ';'
         | parameter_declaration ';'
         | always_construct
+        | assertion_rule
         ;
 
 port_declaration
@@ -170,10 +178,16 @@ statement_list
         | statement
         ;
 
+statement_or_epsilon
+        : statement
+        |
+        ;
+
 statement
         : if_construct
         | case_contruct
         | non_blocking_assignment ';'
+        | display_string
         ;
 
 if_construct
@@ -216,6 +230,29 @@ bit_pattern
         : DEC_INTEGER
         ;
 
+assertion_rule
+        : assertion_identifier ':' assertion_property_statement
+        ;
+    
+assertion_property_statement
+        : "assert" "property" '(' property_block ')' action_block
+        ;
+
+property_block
+        : '@' '(' event_expression ')' signal_change '|' '-' '>' '#' '#' range signal_change
+        ;
+
+signal_change
+        : signal_change_identifier '(' port_identifier range ')'
+        ;
+
+action_block
+        : statement_or_epsilon "else" statement
+        ;
+
+display_string
+        : "$display" '(' STRING ')' ';'
+
 number
         : DEC_INTEGER
         {
@@ -226,6 +263,15 @@ number
 edge_identifier
         : "posedge"
         | "negedge"
+        ;
+
+signal_change_identifier
+        : "$rose"
+        | "$fell"
+        ;
+
+assertion_identifier
+        : IDENTIFIER { $$ = $1; }
         ;
 
 port_identifier

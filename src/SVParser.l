@@ -41,6 +41,11 @@ XINT            [01xX]+
 "case"                  return k_CASE;
 "casex"                 return k_CASEX;
 "endcase"               return k_ENDCASE;
+"assert"                return k_ASSERT;
+"property"              return k_PROPERTY;
+"$rose"                 return k_ROSE;
+"$fell"                 return k_FELL;
+"$display"              return k_DISPLAY;
 
 
 {D_INT}'[Bb]{B_INT}     { parse_integer(); make_string(tmps); return DEC_INTEGER; }
@@ -48,6 +53,7 @@ XINT            [01xX]+
 {D_INT}'[Bb]{XINT}      { parse_integer(); make_string(tmps); return BIT_LABEL; }
 {D_INT}                 { make_string(yytext); return DEC_INTEGER; }
 {IDENTIFY}              { make_string(yytext); return IDENTIFIER; }
+\".*\"                  return STRING;
 .                       return yytext[0];
 
 %%
