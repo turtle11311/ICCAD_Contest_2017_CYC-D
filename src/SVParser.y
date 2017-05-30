@@ -35,6 +35,15 @@ std::map<std::string, unsigned int> parameterTable;
 %token k_OUTPUT "output"
 %token k_REG "reg"
 %token k_PARAMETER "parameter"
+%token k_BEGIN "begin"
+%token k_END "end"
+%token k_POSEDGE "posedge"
+%token k_NEGEDGE "negedge"
+%token k_ALWAYS "always"
+%token k_OR "or"
+%token k_IF "if"
+%token k_ELSE "else"
+
 
 %token <string> DEC_INTEGER
 %token <string> IDENTIFIER
@@ -43,6 +52,9 @@ std::map<std::string, unsigned int> parameterTable;
 %type <string> parameter_identifier
 %type <integer> number
 %type <range> range
+
+%nonassoc LOWER_THAN_ELSE
+%nonassoc "else"
 
 %destructor { delete $$; } <string> <range>
 
@@ -66,6 +78,7 @@ module_item_list
 module_item
         : port_declaration ';'
         | parameter_declaration ';'
+        | always_construct
         ;
 
 port_declaration
@@ -132,11 +145,51 @@ parameter_assignment
         }
         ;
 
+always_construct
+        : "always" '@' '(' event_expression ')' sequential_block
+        ;
+
+event_expression
+        : event_expression "or" event_expression
+        | '*'
+        | port_identifier
+        | edge_identifier port_identifier
+        ;
+
+sequential_block
+        : "begin" statement_list "end"
+        | statement
+        ;
+
+statement_list
+        : statement_list statement
+        | statement
+        ;
+
+statement
+        : if_construct
+        | non_blocking_assignment ';'
+        ;
+
+if_construct
+        : "if" '(' port_identifier ')' sequential_block %prec LOWER_THAN_ELSE
+        | "if" '(' port_identifier ')' sequential_block "else" sequential_block
+        ;
+
+non_blocking_assignment
+        : port_identifier '<' '=' port_identifier
+        ;
+
 number
         : DEC_INTEGER
         {
             sscanf($1->c_str(), "%u", &$$);
         }
+        ;
+
+edge_identifier
+        : "posedge"
+        | "negedge"
         ;
 
 port_identifier

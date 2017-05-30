@@ -30,6 +30,14 @@ XINT            [01xX]+
 "output"                return k_OUTPUT;
 "reg"                   return k_REG;
 "parameter"             return k_PARAMETER;
+"begin"                 return k_BEGIN;
+"end"                   return k_END;
+"posedge"               return k_POSEDGE;
+"negedge"               return k_NEGEDGE;
+"always"                return k_ALWAYS;
+"or"                    return k_OR;
+"if"                    return k_IF;
+"else"                  return k_ELSE;
 
 {D_INT}'[Dd]{D_INT}     { parse_integer(); make_string(tmps); return DEC_INTEGER; }
 {D_INT}                 { make_string(yytext); return DEC_INTEGER; }
