@@ -3,3 +3,6 @@
 
 # Visual Studio project folder
 .vs/
+
+# Atom plugin ftp config
+.ftpconfig
