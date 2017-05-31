@@ -16,7 +16,7 @@ struct Range : public std::pair<size_t, size_t>
         : pair(pos, pos) {}
     Range(size_t pos1, size_t pos2)
         : pair(pos1, pos2) {}
-    inline size_t length() { return first - second + 1; }
+    inline size_t length() { return std::abs(first - second) + 1; }
 };
 
 template <typename Ty = unsigned short>
