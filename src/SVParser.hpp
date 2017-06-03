@@ -1,45 +1,52 @@
 #pragma once
 #include <algorithm>
-#include <iostream>
-#include <vector>
-#include <utility>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+#include <utility>
+#include <vector>
 
-namespace SVParser
-{
+namespace SVParser {
 
-class Range : public std::pair<size_t, size_t>
-{
-    typedef std::pair<size_t, size_t> _Base;
-  public:
+class Range : public std::pair< size_t, size_t > {
+    typedef std::pair< size_t, size_t > _Base;
+
+public:
     Range(size_t pos = 0)
-        : _Base(pos, pos) {}
+        : _Base(pos, pos)
+    {
+    }
     Range(size_t pos1, size_t pos2)
-        : _Base(pos1, pos2) {}
-    inline size_t length() { return std::abs(static_cast<int>(first - second)) + 1; }
+        : _Base(pos1, pos2)
+    {
+    }
+    inline size_t length() { return std::abs(static_cast< int >(first - second)) + 1; }
 };
 
-template <typename Ty = unsigned short>
-class Pattern : private std::vector<Ty>
-{
-    typedef std::vector<Ty> _Base;
-  public:
-    template <typename U>
-    friend std::ostream& operator<<(std::ostream& os, const Pattern<U> &pattern);
+template < typename Ty = unsigned short >
+class Pattern : private std::vector< Ty > {
+    typedef std::vector< Ty > _Base;
+
+public:
+    template < typename U >
+    friend std::ostream& operator<<(std::ostream& os, const Pattern< U >& pattern);
     using _Base::size;
     using _Base::operator[];
     using _Base::operator=;
     Pattern(const size_t size = 0)
-        : _Base(size, 0) {}
+        : _Base(size, 0)
+    {
+    }
     Pattern(const Pattern& rhs)
-        : _Base(rhs) {}
+        : _Base(rhs)
+    {
+    }
     Pattern(const char* str)
         : _Base(strlen(str))
     {
         for (int i = 0; i < size(); ++i) {
             int pos = size() - i - 1;
-            switch(str[i]) {
+            switch (str[i]) {
             case '0':
             case '1':
                 this->operator[](pos) = str[i] == '0' ? 0 : 1;
@@ -65,17 +72,20 @@ class Pattern : private std::vector<Ty>
 
     bool operator==(const Pattern& rhs)
     {
-        if (size() != rhs.size()) return false;
+        if (size() != rhs.size())
+            return false;
         for (size_t i = 0; i < size(); ++i) {
-            if ((*this)[i] == 2) continue;
-            else if ((*this)[i] != rhs[i]) return false;
+            if ((*this)[i] == 2)
+                continue;
+            else if ((*this)[i] != rhs[i])
+                return false;
         }
         return true;
     }
 };
 
-template <typename U>
-std::ostream& operator<<(std::ostream& os, const Pattern<U> &pattern)
+template < typename U >
+std::ostream& operator<<(std::ostream& os, const Pattern< U >& pattern)
 {
     std::string str(pattern.size(), 'x');
     for (int i = 0; i < pattern.size(); ++i) {
@@ -86,12 +96,19 @@ std::ostream& operator<<(std::ostream& os, const Pattern<U> &pattern)
 }
 
 struct Transition {
-    Transition() {};
-    Transition(const Transition &rhs)
-        : pattern(rhs.pattern), nstate(rhs.nstate), out(rhs.out) {}
+    Transition(){};
+    Transition(const Transition& rhs)
+        : pattern(rhs.pattern)
+        , nstate(rhs.nstate)
+        , out(rhs.out)
+    {
+    }
     Transition(const char* pattern, int nstate, const char* out)
-        : pattern(pattern), nstate(nstate), out(out)
-    {}
+        : pattern(pattern)
+        , nstate(nstate)
+        , out(out)
+    {
+    }
     const Transition& operator=(const Transition& rhs)
     {
         Transition cpy(rhs);
@@ -115,5 +132,4 @@ struct Assertion {
     SignalChange event;
     Range time;
 };
-
 }
