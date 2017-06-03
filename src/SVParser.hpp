@@ -9,31 +9,33 @@
 namespace SVParser
 {
 
-struct Range : public std::pair<size_t, size_t>
+class Range : public std::pair<size_t, size_t>
 {
+    typedef std::pair<size_t, size_t> _Base;
   public:
     Range(size_t pos = 0)
-        : pair(pos, pos) {}
+        : _Base(pos, pos) {}
     Range(size_t pos1, size_t pos2)
-        : pair(pos1, pos2) {}
-    inline size_t length() { return std::abs(first - second) + 1; }
+        : _Base(pos1, pos2) {}
+    inline size_t length() { return std::abs(static_cast<int>(first - second)) + 1; }
 };
 
 template <typename Ty = unsigned short>
 class Pattern : private std::vector<Ty>
 {
+    typedef std::vector<Ty> _Base;
   public:
     template <typename U>
     friend std::ostream& operator<<(std::ostream& os, const Pattern<U> &pattern);
-    using std::vector<Ty>::size;
-    using std::vector<Ty>::operator[];
-    // using std::vector<Ty>::operator=;
+    using _Base::size;
+    using _Base::operator[];
+    using _Base::operator=;
     Pattern(const size_t size = 0)
-        : std::vector<Ty>(size, 0) {}
+        : _Base(size, 0) {}
     Pattern(const Pattern& rhs)
-        : std::vector<Ty>(rhs) {}
+        : _Base(rhs) {}
     Pattern(const char* str)
-        : std::vector<Ty>(strlen(str))
+        : _Base(strlen(str))
     {
         for (int i = 0; i < size(); ++i) {
             int pos = size() - i - 1;
@@ -48,8 +50,18 @@ class Pattern : private std::vector<Ty>
             }
         }
     }
+
     Pattern(const std::string& str)
-        : Pattern<Ty>(str.c_str()) {}
+    {
+        Pattern new_pattern(str.c_str());
+        std::swap(new_pattern, *this);
+    }
+
+    const Pattern& operator=(const Pattern& rhs)
+    {
+        _Base::operator=(rhs);
+        return *this;
+    }
 
     bool operator==(const Pattern& rhs)
     {
