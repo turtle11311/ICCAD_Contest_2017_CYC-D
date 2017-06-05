@@ -101,6 +101,7 @@ struct Transition {
         : pattern(rhs.pattern)
         , nstate(rhs.nstate)
         , out(rhs.out)
+        , traversed(false)
     {
     }
     Transition(const char* pattern, int nstate, const char* out)
@@ -117,9 +118,18 @@ struct Transition {
         std::swap(out, cpy.out);
         return *this;
     }
+    Pattern<> defaultPattern()
+    {
+        Pattern<> res = pattern;
+        for ( int i = 0 ; i < res.size() ; ++i )
+            if ( res[i] == 2 ) res[i] = 0;
+        return res;
+    }
+
     Pattern<> pattern;
     int nstate;
     Pattern<> out;
+    bool traversed;
 };
 
 struct SignalChange {
@@ -128,6 +138,8 @@ struct SignalChange {
 };
 
 struct Assertion {
+    bool activated;
+    bool failed;
     SignalChange trigger;
     SignalChange event;
     Range time;
