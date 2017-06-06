@@ -23,6 +23,7 @@ int* state = new int;
 std::vector< Pattern<> > inputSequence;
 std::vector< unsigned int > rstRecord;
 
+void initializer();
 void simulator();
 void activator(Assertion&);
 bool outActivate(unsigned int, unsigned int);
@@ -35,7 +36,6 @@ void printInputSequence();
 void printOutputSequence();
 int main(int argc, const char* argv[])
 {
-    srand(time(0));
     yyparse();
     simulator();
     for (auto it = varMap.begin(); it != varMap.end(); ++it) {
@@ -45,14 +45,18 @@ int main(int argc, const char* argv[])
     return EXIT_SUCCESS;
 }
 
-void simulator()
-{
+void initializer(){
     const int ptnSize = size = fsm[0].front().pattern.size();
     inputSequence.push_back(Pattern<>(ptnSize));
-    preOperationForSimulator();
+    (*state) = 0;
+}
+
+void simulator()
+{
     int count = 0;
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
         cout << "Assertion: " << ++count << endl;
+        initializer();
         activator(*it);
         reset();
     }
@@ -61,24 +65,6 @@ void simulator()
 
 void activator(Assertion& asrt)
 {
-    unsigned int triggerFlag = asrt.trigger.change;
-    bool activated = false;
-    unsigned int index = 0;
-    cout << "initial out: " << *varMap["out"] << endl;
-
-    // false = in : true = out | index
-    std::pair< bool, unsigned int > io = find(asrt.trigger.target);
-    if (io.first) {
-        if (triggerFlag) {
-            if ((*varMap["out"])[index] == !triggerFlag) {
-                while (!outActivate(io.second, triggerFlag)) {
-                }
-            } else {
-            }
-        } else {
-        }
-    } else {
-    }
 }
 
 bool outActivate(unsigned int index, unsigned int triggerFlag)
