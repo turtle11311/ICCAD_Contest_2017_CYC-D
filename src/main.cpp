@@ -18,6 +18,11 @@ extern std::map< std::string, unsigned int > parameterTable;
 extern std::map< int, std::list< Transition > > fsm;
 extern std::list< Assertion > asrtList;
 
+struct Direction {
+    int state;
+    Transition* transition;
+};
+
 int size;
 int* state = new int;
 std::vector< Pattern<> > inputSequence;
@@ -26,6 +31,7 @@ std::vector< unsigned int > rstRecord;
 void initializer();
 void simulator();
 void activator(Assertion&);
+bool traversalChecker(std::list<Direction>&, Transition* transition);
 bool outActivate(unsigned int, unsigned int);
 bool recursionChecker(int);
 void terminator(Assertion&);
@@ -65,6 +71,41 @@ void simulator()
 
 void activator(Assertion& asrt)
 {
+    std::pair<bool, unsigned int> io = find(asrt.trigger.target);
+
+    std::list<std::list<Transition>> paths;
+    std::list<Direction> stack;
+
+    rstRecord.push_back(inputSequence.size());
+    inputSequence.push_back(fsm[0].front().defaultPattern());
+    *state = fsm[0].front().nstate;
+    Direction temp = Direction({0,&(fsm[0].front())});
+    if ( io.first ){
+        cout << "output-signal-activated assertion." << endl;
+        while (stack.size()) {
+            bool pop_back = true;
+            for ( auto& it = fsm[*state].begin() ; it != fsm[*state].end() ; ++it ){
+                if ( !traversalChecker( stack, *it ) ){
+
+                    pop_back = false;
+                    break;
+                }
+            }
+            if ( pop_back ){
+
+            }
+        }
+    } else {
+        cout << "input-signal-activated assertion." << endl;
+    }
+}
+
+bool traversalChecker( std::list<Direction>& stack , Transition* transition  ){
+    for ( auto& it = stack.begin() ; it != stack.end() ; ++it ){
+        if ( it->transition == transition )
+            return true;
+    }
+    return false;
 }
 
 bool outActivate(unsigned int index, unsigned int triggerFlag)
