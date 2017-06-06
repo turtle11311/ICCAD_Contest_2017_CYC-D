@@ -18,20 +18,28 @@ extern std::map< std::string, unsigned int > parameterTable;
 extern std::map< int, std::list< Transition > > fsm;
 extern std::list< Assertion > asrtList;
 
+struct ActivativePoint{
+    int state1, state2;
+    Transition transition1, transition2;
+};
+
 struct Direction {
     int state;
     Transition* transition;
 };
 
-int size;
+int ptnSize;
 int* state = new int;
 std::vector< Pattern<> > inputSequence;
 std::vector< unsigned int > rstRecord;
+std::map<int , std::list<Transition>::iterator> fsmIt;
 
 void initializer();
 void simulator();
 void activator(Assertion&);
+void staticFindOutputSignalActivativePoint( Assertion& );
 bool traversalChecker(std::list<Direction>&, Transition* transition);
+bool outputSignalActivator( unsigned int, bool, Transition&);
 bool outActivate(unsigned int, unsigned int);
 bool recursionChecker(int);
 void terminator(Assertion&);
@@ -43,6 +51,10 @@ void printOutputSequence();
 int main(int argc, const char* argv[])
 {
     yyparse();
+    ptnSize = fsm[0].front().pattern.size();
+    for ( int i = 0 ; i < fsm.size() ; ++i ){
+        fsmIt[i] = fsm[i].begin();
+    }
     simulator();
     for (auto it = varMap.begin(); it != varMap.end(); ++it) {
         delete it->second;
@@ -52,7 +64,7 @@ int main(int argc, const char* argv[])
 }
 
 void initializer(){
-    const int ptnSize = size = fsm[0].front().pattern.size();
+    inputSequence.clear();
     inputSequence.push_back(Pattern<>(ptnSize));
     (*state) = 0;
 }
@@ -63,37 +75,116 @@ void simulator()
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
         cout << "Assertion: " << ++count << endl;
         initializer();
-        activator(*it);
-        reset();
+        staticFindOutputSignalActivativePoint(*it);
+        //activator(*it);
+        //reset();
     }
     printInputSequence();
+}
+
+void staticFindOutputSignalActivativePoint( Assertion& asrt ){
+    std::pair<bool, unsigned int> io = find(asrt.trigger.target);
+    unsigned int index = io.second;
+    std::list<ActivativePoint> APList;
+    cout << "Activative target: " << (( io.first ) ? "out[" : "in[" ) << index << "]"
+        << " is " << (asrt.trigger.change ? "rose" : "fell") << "." << endl;
+    if ( io.first ){
+        cout << "output-signal-activated assertion." << endl;
+        for ( int i = 0 ; i < fsm.size() ; ++i ){
+            for ( auto it1 = fsm[i].begin() ; it1 != fsm[i].end(); ++it1 ){
+                if ( it1->out[ptnSize-1-index] == !asrt.trigger.change ){
+                    for ( auto it2 = fsm[it1->nstate].begin(); it2 != fsm[it1->nstate].end(); ++it2 ){
+                        if ( it2->out[ptnSize-1-index] == asrt.trigger.change ){
+                            APList.push_back(ActivativePoint({i,it1->nstate,*it1,*it2}));
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        cout << "input-signal-activated assertion." << endl;
+    }
+    for ( auto it = APList.begin() ; it != APList.end(); ++it ){
+        cout << "state1: " << it->state1 << ", " << "state2: " << it->state2 << ", "
+             << "transition1: " << it->transition1.pattern << ", " << "transition2: " << it->transition2.pattern <<endl;
+    }
+    cout << endl << endl;
 }
 
 void activator(Assertion& asrt)
 {
     std::pair<bool, unsigned int> io = find(asrt.trigger.target);
-
-    std::list<std::list<Transition>> paths;
+    cout << "Activative target: " << (( io.first ) ? "out[" : "in[" ) << io.second << "]"
+        << " is " << (asrt.trigger.change ? "rose" : "fell") << "." << endl;
+    std::list<std::list<Direction>> paths;
     std::list<Direction> stack;
 
-    rstRecord.push_back(inputSequence.size());
-    inputSequence.push_back(fsm[0].front().defaultPattern());
-    *state = fsm[0].front().nstate;
-    Direction temp = Direction({0,&(fsm[0].front())});
     if ( io.first ){
         cout << "output-signal-activated assertion." << endl;
+        cout << "current state: " << *state << endl;
+        cout << "transition: " << fsm[*state].front().pattern
+             << ", then go to state " << fsm[*state].front().nstate;
+        rstRecord.push_back(inputSequence.size());
+        inputSequence.push_back(fsm[*state].front().defaultPattern());
+        Direction temp = Direction({*state,&(fsm[*state].front())});
+        *state = fsm[*state].front().nstate;
+        *varMap["out"] = fsm[*state].front().out;
+        cout << ", out is " << *varMap["out"] << endl;
+        stack.push_back(temp);
         while (stack.size()) {
+            cout << endl;
             bool pop_back = true;
-            for ( auto& it = fsm[*state].begin() ; it != fsm[*state].end() ; ++it ){
-                if ( !traversalChecker( stack, *it ) ){
-
+            cout << "current state: " << *state << endl;
+            // if ( fsmIt[*state] == fsm[*state].end() ){
+            //     fsmIt[*state] = fsm[*state].begin();
+            //     stack.pop_back();
+            // }
+            // else {
+            //     inputSequence.push_back(fsmIt[*state]->defaultPattern());
+            //     stack.push_back(Direction({*state,&(*fsmIt[*state])}));
+            //     if ( outputSignalActivator(io.second, asrt.trigger.change, *fsmIt[*state]) ){
+            //         cout << "transition: " << fsmIt[*state]->pattern
+            //         << ", then go to state " << fsmIt[*state]->nstate;
+            //         cout << ", out is " << fsmIt[*state]->out << endl;
+            //         cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+            //         cout << "Assertion has been activated." << endl;
+            //         cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+            //         paths.push_back(stack);
+            //         stack.pop_back();
+            //     }
+            //     unsigned int buf = *state;
+            //     *state = fsmIt[buf]->nstate;
+            //     *varMap["out"] = fsmIt[buf]->out;
+            //     cout << "transition: " << fsmIt[buf]->pattern
+            //         << ", then go to state " << *state;
+            //     cout << ", out is " << *varMap["out"] << endl;
+            //     fsmIt[buf]++;
+            // }
+            for ( auto it = fsm[*state].begin() ; it != fsm[*state].end() ; ++it ){
+                if ( !traversalChecker( stack, &(*it) ) ){
+                    inputSequence.push_back(it->defaultPattern());
+                    stack.push_back(Direction({*state,&(*it)}));
+                    if ( outputSignalActivator(io.second, asrt.trigger.change, *it) ){
+                        cout << "transition: " << it->pattern
+                             << ", then go to state " << it->nstate;
+                        cout << ", out is " << it->out << endl;
+                        cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+                        cout << "Assertion has been activated." << endl;
+                        cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+                        paths.push_back(stack);
+                        break;
+                    }
+                    *state = it->nstate;
+                    *varMap["out"] = it->out;
+                    cout << "transition: " << it->pattern
+                         << ", then go to state " << *state;
+                    cout << ", out is " << *varMap["out"] << endl;
                     pop_back = false;
                     break;
                 }
             }
-            if ( pop_back ){
-
-            }
+            if ( pop_back )
+                stack.pop_back();
         }
     } else {
         cout << "input-signal-activated assertion." << endl;
@@ -101,10 +192,19 @@ void activator(Assertion& asrt)
 }
 
 bool traversalChecker( std::list<Direction>& stack , Transition* transition  ){
-    for ( auto& it = stack.begin() ; it != stack.end() ; ++it ){
+    for ( auto it = stack.begin() ; it != stack.end() ; ++it ){
         if ( it->transition == transition )
             return true;
     }
+    return false;
+}
+
+bool outputSignalActivator( unsigned int index, bool triggerFlag, Transition& transition ){
+    cout << "outputSignalActivator para: " << index << " " << triggerFlag << endl;
+    cout << "current out[" << index << "] is " << (*varMap["out"])[ptnSize-1-index] << endl;
+    cout << "next out[" << index << "] is " << transition.out[ptnSize-1-index] << endl;
+    if ( (*varMap["out"])[ptnSize-1-index] == !triggerFlag && transition.out[ptnSize-1-index] == triggerFlag )
+        return true;
     return false;
 }
 
@@ -214,7 +314,6 @@ void terminator(Assertion& asrt)
 void preOperationForSimulator()
 {
     (*state) = 0;
-    const int ptnSize = size = fsm[0].front().pattern.size();
     rstRecord.push_back(inputSequence.size());
     for (auto it = fsm[(*state)].begin(); it != fsm[(*state)].end(); ++it) {
         if (it->pattern == inputSequence[inputSequence.size() - 1]) {
