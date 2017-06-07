@@ -92,9 +92,9 @@ void staticFindOutputSignalActivativePoint( Assertion& asrt ){
         cout << "output-signal-activated assertion." << endl;
         for ( int i = 0 ; i < fsm.size() ; ++i ){
             for ( auto it1 = fsm[i].begin() ; it1 != fsm[i].end(); ++it1 ){
-                if ( it1->out[ptnSize-1-index] == !asrt.trigger.change ){
+                if ( it1->out[index] == !asrt.trigger.change ){
                     for ( auto it2 = fsm[it1->nstate].begin(); it2 != fsm[it1->nstate].end(); ++it2 ){
-                        if ( it2->out[ptnSize-1-index] == asrt.trigger.change ){
+                        if ( it2->out[index] == asrt.trigger.change ){
                             APList.push_back(ActivativePoint({i,it1->nstate,*it1,*it2}));
                         }
                     }
