@@ -18,11 +18,11 @@ extern std::map< std::string, unsigned int > parameterTable;
 extern std::map< int, std::list< Transition > > fsm;
 extern std::list< Assertion > asrtList;
 
-struct ActivativePoint1 {
+struct ActivatedPoint1 {
     int state1, state2;
     Transition *transition1, *transition2;
 };
-struct ActivativePoint2 {
+struct ActivatedPoint2 {
     int state1, state2;
     Pattern<> p1, p2;
     Transition *transition1, *transition2;
@@ -32,18 +32,18 @@ int ptnSize;
 int* state = new int;
 std::vector< Pattern<> > inputSequence;
 std::vector< unsigned int > rstRecord;
-std::list< ActivativePoint1 > OSAPList;
-std::list< ActivativePoint2 > ISAPList;
+std::list< ActivatedPoint1 > OSAPList;
+std::list< ActivatedPoint2 > ISAPList;
 
 void initializer();
 void simulator();
-void staticFindActivativePoint(Assertion&);
-void staticFindOutputSignalActivativePoint(bool, unsigned int);
-void staticFindInputSignalActivativePoint(bool, unsigned int);
+void staticFindActivatedPoint(Assertion&);
+void staticFindOutputSignalActivatedPoint(bool, unsigned int);
+void staticFindInputSignalActivatedPoint(bool, unsigned int);
 std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
 void printOutputSequence();
-void printActivativePoint(int);
+void printActivatedPoint(int);
 int main(int argc, const char* argv[])
 {
     yyparse();
@@ -72,24 +72,24 @@ void simulator()
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
         cout << "Assertion: " << ++count << endl;
         initializer();
-        staticFindActivativePoint(*it);
+        staticFindActivatedPoint(*it);
     }
 }
 
-void staticFindActivativePoint(Assertion& asrt)
+void staticFindActivatedPoint(Assertion& asrt)
 {
     std::pair< bool, unsigned int > io = find(asrt.trigger.target);
     bool triggerFlag = io.first;
     unsigned int index = io.second;
-    cout << "Activative target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
+    cout << "Activated target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
          << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
     if (triggerFlag)
-        staticFindOutputSignalActivativePoint(triggerFlag, index);
+        staticFindOutputSignalActivatedPoint(triggerFlag, index);
     else
-        staticFindInputSignalActivativePoint(triggerFlag, index);
+        staticFindInputSignalActivatedPoint(triggerFlag, index);
 }
 
-void staticFindOutputSignalActivativePoint(bool triggerFlag, unsigned int index)
+void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index)
 {
     cout << "output-signal-activated assertion." << endl;
     for (int i = 0; i < fsm.size(); ++i) {
@@ -97,16 +97,16 @@ void staticFindOutputSignalActivativePoint(bool triggerFlag, unsigned int index)
             if (it1->out[index] == !triggerFlag) {
                 for (auto it2 = fsm[it1->nstate].begin(); it2 != fsm[it1->nstate].end(); ++it2) {
                     if (it2->out[index] == triggerFlag) {
-                        OSAPList.push_back(ActivativePoint1({ i, it1->nstate, &(*it1), &(*it2) }));
+                        OSAPList.push_back(ActivatedPoint1({ i, it1->nstate, &(*it1), &(*it2) }));
                     }
                 }
             }
         }
     }
-    printActivativePoint(true);
+    printActivatedPoint(true);
 }
 
-void staticFindInputSignalActivativePoint(bool triggerFlag, unsigned int index)
+void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index)
 {
     cout << "input-signal-activated assertion." << endl;
     for (int i = 0; i < fsm.size(); ++i) {
@@ -124,13 +124,13 @@ void staticFindInputSignalActivativePoint(bool triggerFlag, unsigned int index)
                     else
                         continue;
                     if (it2->pattern == expectedPattern2) {
-                        ISAPList.push_back(ActivativePoint2({ i, it1->nstate, expectedPattern1, expectedPattern2, &(*it1), &(*it2) }));
+                        ISAPList.push_back(ActivatedPoint2({ i, it1->nstate, expectedPattern1, expectedPattern2, &(*it1), &(*it2) }));
                     }
                 }
             }
         }
     }
-    printActivativePoint(false);
+    printActivatedPoint(false);
 }
 
 std::pair< bool, unsigned int > find(unsigned short* target)
@@ -162,7 +162,7 @@ void printOutputSequence()
     cout << endl;
 }
 
-void printActivativePoint(int mode)
+void printActivatedPoint(int mode)
 {
     if (mode) {
         for (auto it = OSAPList.begin(); it != OSAPList.end(); ++it) {
