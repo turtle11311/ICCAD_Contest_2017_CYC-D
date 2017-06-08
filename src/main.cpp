@@ -18,9 +18,14 @@ extern std::map< std::string, unsigned int > parameterTable;
 extern std::map< int, std::list< Transition > > fsm;
 extern std::list< Assertion > asrtList;
 
-struct ActivativePoint{
+struct ActivativePoint1{
     int state1, state2;
-    Transition transition1, transition2;
+    Transition *transition1, *transition2;
+};
+struct ActivativePoint2{
+    int state1, state2;
+    Pattern<> p1, p2;
+    Transition *transition1, *transition2;
 };
 
 struct Direction {
@@ -33,11 +38,15 @@ int* state = new int;
 std::vector< Pattern<> > inputSequence;
 std::vector< unsigned int > rstRecord;
 std::map<int , std::list<Transition>::iterator> fsmIt;
+std::list<ActivativePoint1> OSAPList;
+std::list<ActivativePoint2> ISAPList;
 
 void initializer();
 void simulator();
 void activator(Assertion&);
-void staticFindOutputSignalActivativePoint( Assertion& );
+void staticFindActivativePoint( Assertion& );
+void staticFindOutputSignalActivativePoint(bool, unsigned int );
+void staticFindInputSignalActivativePoint(bool, unsigned int );
 bool traversalChecker(std::list<Direction>&, Transition* transition);
 bool outputSignalActivator( unsigned int, bool, Transition&);
 bool outActivate(unsigned int, unsigned int);
@@ -48,6 +57,7 @@ void preOperationForSimulator();
 std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
 void printOutputSequence();
+void printActivativePoint( int );
 int main(int argc, const char* argv[])
 {
     yyparse();
@@ -75,40 +85,63 @@ void simulator()
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
         cout << "Assertion: " << ++count << endl;
         initializer();
-        staticFindOutputSignalActivativePoint(*it);
-        //activator(*it);
-        //reset();
+        staticFindActivativePoint(*it);
     }
     printInputSequence();
 }
 
-void staticFindOutputSignalActivativePoint( Assertion& asrt ){
+void staticFindActivativePoint( Assertion& asrt ){
     std::pair<bool, unsigned int> io = find(asrt.trigger.target);
+    bool triggerFlag = io.first;
     unsigned int index = io.second;
-    std::list<ActivativePoint> APList;
-    cout << "Activative target: " << (( io.first ) ? "out[" : "in[" ) << index << "]"
-        << " is " << (asrt.trigger.change ? "rose" : "fell") << "." << endl;
-    if ( io.first ){
-        cout << "output-signal-activated assertion." << endl;
-        for ( int i = 0 ; i < fsm.size() ; ++i ){
-            for ( auto it1 = fsm[i].begin() ; it1 != fsm[i].end(); ++it1 ){
-                if ( it1->out[ptnSize-1-index] == !asrt.trigger.change ){
-                    for ( auto it2 = fsm[it1->nstate].begin(); it2 != fsm[it1->nstate].end(); ++it2 ){
-                        if ( it2->out[ptnSize-1-index] == asrt.trigger.change ){
-                            APList.push_back(ActivativePoint({i,it1->nstate,*it1,*it2}));
-                        }
+    cout << "Activative target: " << (( triggerFlag ) ? "out[" : "in[" ) << index << "]"
+        << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
+    if ( triggerFlag )
+        staticFindOutputSignalActivativePoint(triggerFlag,index);
+    else
+        staticFindInputSignalActivativePoint(triggerFlag,index);
+}
+
+void staticFindOutputSignalActivativePoint( bool triggerFlag, unsigned int index){
+    cout << "output-signal-activated assertion." << endl;
+    for ( int i = 0 ; i < fsm.size() ; ++i ){
+        for ( auto it1 = fsm[i].begin() ; it1 != fsm[i].end(); ++it1 ){
+            if ( it1->out[index] == !triggerFlag ){
+                for ( auto it2 = fsm[it1->nstate].begin(); it2 != fsm[it1->nstate].end(); ++it2 ){
+                    if ( it2->out[index] == triggerFlag ){
+                        OSAPList.push_back(ActivativePoint1({i,it1->nstate,&(*it1),&(*it2)}));
                     }
                 }
             }
         }
-    } else {
-        cout << "input-signal-activated assertion." << endl;
     }
-    for ( auto it = APList.begin() ; it != APList.end(); ++it ){
-        cout << "state1: " << it->state1 << ", " << "state2: " << it->state2 << ", "
-             << "transition1: " << it->transition1.pattern << ", " << "transition2: " << it->transition2.pattern <<endl;
+    printActivativePoint(true);
+}
+
+void staticFindInputSignalActivativePoint( bool triggerFlag, unsigned int index ){
+    cout << "input-signal-activated assertion." << endl;
+    for ( int i = 0 ; i < fsm.size() ; ++i ){
+        for ( auto it1 = fsm[i].begin() ; it1 != fsm[i].end(); ++it1 ){
+            Pattern<> expectedPattern1 = it1->pattern;
+            if ( expectedPattern1[index] == !triggerFlag || expectedPattern1[index] == 2 )
+                expectedPattern1[index] = !triggerFlag;
+            else
+                continue;
+            if ( it1->pattern == expectedPattern1 ){
+                for ( auto it2 = fsm[it1->nstate].begin() ; it2 != fsm[it1->nstate].end() ; ++it2 ){
+                    Pattern<> expectedPattern2 = it2->pattern;
+                    if ( expectedPattern2[index] == triggerFlag || expectedPattern2[index] == 2 )
+                        expectedPattern2[index] = triggerFlag;
+                    else
+                        continue;
+                    if ( it2->pattern == expectedPattern2 ){
+                        ISAPList.push_back(ActivativePoint2({i,it1->nstate, expectedPattern1,expectedPattern2,&(*it1),&(*it2)}));
+                    }
+                }
+            }
+        }
     }
-    cout << endl << endl;
+    printActivativePoint(false);
 }
 
 void activator(Assertion& asrt)
@@ -352,4 +385,21 @@ void printOutputSequence()
         cout << (*varMap["out"])[i];
     }
     cout << endl;
+}
+
+void printActivativePoint( int mode ){
+    if ( mode ){
+        for ( auto it = OSAPList.begin() ; it != OSAPList.end(); ++it ){
+            cout << "(S" << it->state1 << ") -> " << it->transition1->pattern
+            << " | out: " << it->transition1->out << " => (S" << it->state2
+            << ") -> " << it->transition2->pattern << " | out: " << it->transition2->out << endl;;
+        }
+    } else {
+        for ( auto it = ISAPList.begin() ; it != ISAPList.end(); ++it ){
+            cout << "(S" << it->state1 << ") -> " << it->p1
+            << " | out: " << it->transition1->out << " => (S" << it->state2
+            << ") -> " << it->p2 << " | out: " << it->transition2->out << endl;
+        }
+    }
+    cout << endl << endl;
 }
