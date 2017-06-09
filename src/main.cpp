@@ -34,12 +34,15 @@ std::vector< Pattern<> > inputSequence;
 std::vector< unsigned int > rstRecord;
 std::list< ActivatedPoint1 > OSAPList;
 std::list< ActivatedPoint2 > ISAPList;
+std::map<int,std::list<Transition>::iterator> transitionIt;
+std::map<int,int> layerTable;
 
 void initializer();
 void simulator();
 void staticFindActivatedPoint(Assertion&);
 void staticFindOutputSignalActivatedPoint(bool, unsigned int);
 void staticFindInputSignalActivatedPoint(bool, unsigned int);
+void iterativeDFS();
 std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
 void printOutputSequence();
@@ -49,8 +52,15 @@ int main(int argc, const char* argv[])
     yyparse();
     ptnSize = fsm[0].front().pattern.size();
     for (int i = 0; i < fsm.size(); ++i) {
-        fsmIt[i] = fsm[i].begin();
+        transitionIt[i] = fsm[i].begin();
+        layerTable[i] = 2147483647;
     }
+    layerTable[*state] = 0;
+    // iterativeDFS();
+    // for (int i = 0; i < fsm.size(); ++i) {
+    //     cout << "S" << i << ": ";
+    //     cout << layerTable[i] << endl;
+    // }
     simulator();
     for (auto it = varMap.begin(); it != varMap.end(); ++it) {
         delete it->second;
@@ -131,6 +141,29 @@ void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index)
         }
     }
     printActivatedPoint(false);
+}
+
+void iterativeDFS(){
+    int* ptr = new int(0);
+    std::list<Transition> stack;
+    stack.push_back(*(transitionIt[*ptr]++));
+    while( stack.size() ){
+        if ( transitionIt[*ptr] == fsm[*ptr].end() ){
+            stack.pop_back();
+            transitionIt[*ptr] = fsm[*ptr].begin();
+        }
+        else {
+            std::list<Transition>::iterator it = transitionIt[*ptr];
+
+            if ( layerTable[*ptr] + 1 < layerTable[it->nstate] ){
+                layerTable[it->nstate] = layerTable[*ptr] + 1;
+                stack.push_back(*(transitionIt[*ptr]++));
+                *ptr = it->nstate;
+            }
+            transitionIt[*ptr]++;
+        }
+    }
+    delete ptr;
 }
 
 std::pair< bool, unsigned int > find(unsigned short* target)
