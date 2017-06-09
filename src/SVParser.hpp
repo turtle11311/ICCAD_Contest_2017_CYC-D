@@ -1,4 +1,5 @@
 #pragma once
+#include "Pattern.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -23,78 +24,6 @@ public:
     inline size_t length() { return std::abs(static_cast< int >(first - second)) + 1; }
 };
 
-template < typename Ty = unsigned short >
-class Pattern : private std::vector< Ty > {
-    typedef std::vector< Ty > _Base;
-
-public:
-    template < typename U >
-    friend std::ostream& operator<<(std::ostream& os, const Pattern< U >& pattern);
-    using _Base::size;
-    using _Base::operator[];
-    using _Base::operator=;
-    Pattern(const size_t size = 0)
-        : _Base(size, 0)
-    {
-    }
-    Pattern(const Pattern& rhs)
-        : _Base(rhs)
-    {
-    }
-    Pattern(const char* str)
-        : _Base(strlen(str))
-    {
-        for (int i = 0; i < size(); ++i) {
-            int pos = size() - i - 1;
-            switch (str[i]) {
-            case '0':
-            case '1':
-                this->operator[](pos) = str[i] == '0' ? 0 : 1;
-                break;
-            default:
-                this->operator[](pos) = 2;
-                break;
-            }
-        }
-    }
-
-    Pattern(const std::string& str)
-    {
-        Pattern new_pattern(str.c_str());
-        std::swap(new_pattern, *this);
-    }
-
-    const Pattern& operator=(const Pattern& rhs)
-    {
-        _Base::operator=(rhs);
-        return *this;
-    }
-
-    bool operator==(const Pattern& rhs)
-    {
-        if (size() != rhs.size())
-            return false;
-        for (size_t i = 0; i < size(); ++i) {
-            if ((*this)[i] == 2)
-                continue;
-            else if ((*this)[i] != rhs[i])
-                return false;
-        }
-        return true;
-    }
-};
-
-template < typename U >
-std::ostream& operator<<(std::ostream& os, const Pattern< U >& pattern)
-{
-    std::string str(pattern.size(), 'x');
-    for (int i = 0; i < pattern.size(); ++i) {
-        str[i] = pattern[i] < 2 ? pattern[i] + '0' : 'x';
-    }
-    std::reverse(str.begin(), str.end());
-    return os << str;
-}
-
 struct Transition {
     Transition(){};
     Transition(const Transition& rhs)
@@ -117,9 +46,9 @@ struct Transition {
         std::swap(out, cpy.out);
         return *this;
     }
-    Pattern<> pattern;
+    Pattern pattern;
     int nstate;
-    Pattern<> out;
+    Pattern out;
 };
 
 struct SignalChange {

@@ -12,7 +12,7 @@ using std::endl;
 
 extern int yyparse(void);
 
-extern std::map< std::string, Pattern<>* > varMap;
+extern std::map< std::string, Pattern* > varMap;
 extern std::map< std::string, unsigned int > parameterTable;
 extern std::map< int, std::list< Transition > > fsm;
 extern std::list< Assertion > asrtList;

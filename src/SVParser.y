@@ -18,7 +18,7 @@ using std::cout;
 using std::endl;
 
 // Variable
-std::map<std::string, Pattern<>* > varMap;
+std::map<std::string, Pattern* > varMap;
 std::vector<std::string*> nameList;
 std::map<std::string, unsigned int> parameterTable;
 
@@ -34,7 +34,7 @@ std::list<Assertion> asrtList;
 %union {
   std::string* string;
   SVParser::Range* range;
-  SVParser::Pattern<>* pattern;
+  SVParser::Pattern* pattern;
   unsigned int integer;
   SVParser::SignalChange sig_ch;
 }
@@ -112,7 +112,7 @@ port_declaration
         {
             for (auto it = nameList.begin(); it != nameList.end(); ++it) {
                 if (varMap.find(**it) == varMap.end()) {
-                    varMap[**it] = new Pattern<>(1);
+                    varMap[**it] = new Pattern(1);
                 }
             }
         }
@@ -120,7 +120,7 @@ port_declaration
         {
             for (auto it = nameList.begin(); it != nameList.end(); ++it) {
                 if (varMap.find(**it) == varMap.end()) {
-                    varMap[**it] = new Pattern<>($2->length());
+                    varMap[**it] = new Pattern($2->length());
                 }
             }
         }
@@ -258,7 +258,7 @@ non_blocking_assignment
 bit_pattern
         : BIN_INTEGER
         {
-            $$ = new Pattern<>(*$1);
+            $$ = new Pattern(*$1);
         }
         ;
 

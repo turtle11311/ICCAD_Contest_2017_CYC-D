@@ -8,7 +8,7 @@ char tmpc;
 int tmpi;
 
 #define make_string(arg) yylval.string = new std::string((arg));
-#define make_pattern(arg) yylval.pattern = new SVParser::Pattern<>((arg));
+#define make_pattern(arg) yylval.pattern = new SVParser::Pattern((arg));
 #define parse_integer() sscanf(yytext, "%d'%c%s", &tmpi , &tmpc, tmps );
 %}
 
