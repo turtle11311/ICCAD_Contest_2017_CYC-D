@@ -1,4 +1,6 @@
 #include "State.hpp"
+#include <algorithm>
+#include <memory>
 
 namespace SVParser {
 State::From::From(State* state, Transition* transition)
@@ -6,10 +8,17 @@ State::From::From(State* state, Transition* transition)
     , transition(transition)
 {
 }
+
 State::State(int label)
     : _label(label)
 {
 }
+
+State::~State()
+{
+    std::for_each(transitions.begin(), transitions.end(), std::default_delete<Transition>());
+}
+
 Transition::Transition() {}
 
 Transition::Transition(const Transition& rhs)

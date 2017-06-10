@@ -17,6 +17,7 @@ public:
     };
     State(int label);
     inline int label() { return _label; };
+    ~State();
 
 private:
     const int _label;
