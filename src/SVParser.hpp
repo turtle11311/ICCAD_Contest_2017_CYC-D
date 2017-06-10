@@ -27,6 +27,8 @@ struct SignalChange {
 };
 
 struct Assertion {
+    bool activated;
+    bool failed;
     SignalChange trigger;
     SignalChange event;
     Range time;
