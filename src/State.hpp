@@ -16,11 +16,9 @@ public:
         From(State* state, Transition* transition);
     };
     State(int label);
-    inline int label() { return _label; };
     ~State();
 
-private:
-    const int _label;
+    const int label;
     std::vector< Transition* > transitions;
     std::vector< From > fromList;
 };

@@ -5,16 +5,21 @@
 #include <map>
 
 namespace SVParser {
-class FiniteStateMachine {
+class FiniteStateMachine : private std::map< int, State* > {
+    typedef std::map< int, State* > _Base;
 public:
+    using _Base::operator[];
+    using _Base::_Base;
+    using _Base::size;
+    using _Base::begin;
+    using _Base::end;
     FiniteStateMachine();
+    inline size_t inputSize() { return PATTERNSIZE; }
+    State* getState(int state);
     void insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out);
-    void _Debug_show_all_data();
     ~FiniteStateMachine();
 
 private:
-    State* getState(int state);
-    std::map< int, State* > stateTable;
     size_t PATTERNSIZE;
 };
 }

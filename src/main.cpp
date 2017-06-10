@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <climits>
 #include <list>
 #include <map>
 #include <string>
@@ -17,44 +18,44 @@ extern std::map< std::string, Pattern* > varMap;
 extern std::list< Assertion > asrtList;
 extern FiniteStateMachine FSM;
 
-struct ActivativePoint{
-    int state1, state2;
-    Transition transition1, transition2;
+struct ActivatedPoint1 {
+    State *state1, *state2;
+    Transition *transition1, *transition2;
 };
 
-struct Direction {
-    int state;
-    Transition* transition;
+struct ActivatedPoint2 {
+    State *state1, *state2;
+    Pattern p1, p2;
+    Transition *transition1, *transition2;
 };
 
 int ptnSize;
 int* state = new int;
-std::vector< Pattern<> > inputSequence;
+std::vector< Pattern > inputSequence;
 std::vector< unsigned int > rstRecord;
-std::map<int , std::list<Transition>::iterator> fsmIt;
+std::list< ActivatedPoint1 > OSAPList;
+std::list< ActivatedPoint2 > ISAPList;
+std::vector< int > layerTable;
+std::map< int, std::list< int > > rlayerTable;
 
+void preProcessor();
 void initializer();
 void simulator();
-void activator(Assertion&);
-void staticFindOutputSignalActivativePoint( Assertion& );
-bool traversalChecker(std::list<Direction>&, Transition* transition);
-bool outputSignalActivator( unsigned int, bool, Transition&);
-bool outActivate(unsigned int, unsigned int);
-bool recursionChecker(int);
-void terminator(Assertion&);
-void reset();
-void preOperationForSimulator();
+void staticFindActivatedPoint(Assertion&);
+void staticFindOutputSignalActivatedPoint(bool, unsigned int);
+void staticFindInputSignalActivatedPoint(bool, unsigned int);
+void iterativelyEvalStateLayer();
 std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
 void printOutputSequence();
+void printActivatedPoint(int);
+void printStateLayer();
 int main(int argc, const char* argv[])
 {
     yyparse();
-    ptnSize = fsm[0].front().pattern.size();
-    for ( int i = 0 ; i < fsm.size() ; ++i ){
-        fsmIt[i] = fsm[i].begin();
-    }
-    simulator();
+    preProcessor();
+    printStateLayer();
+    //simulator();
     for (auto it = varMap.begin(); it != varMap.end(); ++it) {
         delete it->second;
     }
@@ -62,9 +63,23 @@ int main(int argc, const char* argv[])
     return EXIT_SUCCESS;
 }
 
-void initializer(){
+void preProcessor()
+{
+    // record pattern size
+    ptnSize = FSM.inputSize();
+    // initialize each state's layer = 2147483647
+    layerTable.assign(FSM.size(), INT_MAX);
+    layerTable[0] = 0;
+    // initialize initial layer S0
+    rlayerTable[0] = std::move(std::list< int >(1, 0));
+
+    iterativelyEvalStateLayer();
+}
+
+void initializer()
+{
     inputSequence.clear();
-    inputSequence.push_back(Pattern<>(ptnSize));
+    inputSequence.push_back(Pattern(ptnSize));
     (*state) = 0;
 }
 
@@ -74,253 +89,85 @@ void simulator()
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
         cout << "Assertion: " << ++count << endl;
         initializer();
-        staticFindOutputSignalActivativePoint(*it);
-        //activator(*it);
-        //reset();
+        staticFindActivatedPoint(*it);
     }
-    printInputSequence();
 }
 
-void staticFindOutputSignalActivativePoint( Assertion& asrt ){
-    std::pair<bool, unsigned int> io = find(asrt.trigger.target);
+void staticFindActivatedPoint(Assertion& asrt)
+{
+    std::pair< bool, unsigned int > io = find(asrt.trigger.target);
+    bool triggerFlag = io.first;
     unsigned int index = io.second;
-    std::list<ActivativePoint> APList;
-    cout << "Activative target: " << (( io.first ) ? "out[" : "in[" ) << index << "]"
-        << " is " << (asrt.trigger.change ? "rose" : "fell") << "." << endl;
-    if ( io.first ){
-        cout << "output-signal-activated assertion." << endl;
-        for ( int i = 0 ; i < fsm.size() ; ++i ){
-            for ( auto it1 = fsm[i].begin() ; it1 != fsm[i].end(); ++it1 ){
-                if ( it1->out[index] == !asrt.trigger.change ){
-                    for ( auto it2 = fsm[it1->nstate].begin(); it2 != fsm[it1->nstate].end(); ++it2 ){
-                        if ( it2->out[index] == asrt.trigger.change ){
-                            APList.push_back(ActivativePoint({i,it1->nstate,*it1,*it2}));
-                        }
+    cout << "Activated target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
+         << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
+    if (triggerFlag)
+        staticFindOutputSignalActivatedPoint(triggerFlag, index);
+    else
+        staticFindInputSignalActivatedPoint(triggerFlag, index);
+}
+
+void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index)
+{
+    cout << "output-signal-activated assertion." << endl;
+    for (int i = 0; i < FSM.size(); ++i) {
+        for (auto it1 = FSM[i]->transitions.begin(); it1 != FSM[i]->transitions.end(); ++it1) {
+            if ((*it1)->out[index] == !triggerFlag) {
+                for (auto it2 = FSM[(*it1)->nState->label]->transitions.begin(); it2 != FSM[(*it1)->nState->label]->transitions.end(); ++it2) {
+                    if ((*it2)->out[index] == triggerFlag) {
+                        OSAPList.push_back(ActivatedPoint1({ FSM[i], (*it1)->nState, *it1, *it2 }));
                     }
                 }
             }
         }
-    } else {
-        cout << "input-signal-activated assertion." << endl;
     }
-    for ( auto it = APList.begin() ; it != APList.end(); ++it ){
-        cout << "state1: " << it->state1 << ", " << "state2: " << it->state2 << ", "
-             << "transition1: " << it->transition1.pattern << ", " << "transition2: " << it->transition2.pattern <<endl;
-    }
-    cout << endl << endl;
+    printActivatedPoint(true);
 }
 
-void activator(Assertion& asrt)
+void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index)
 {
-    std::pair<bool, unsigned int> io = find(asrt.trigger.target);
-    cout << "Activative target: " << (( io.first ) ? "out[" : "in[" ) << io.second << "]"
-        << " is " << (asrt.trigger.change ? "rose" : "fell") << "." << endl;
-    std::list<std::list<Direction>> paths;
-    std::list<Direction> stack;
-
-    if ( io.first ){
-        cout << "output-signal-activated assertion." << endl;
-        cout << "current state: " << *state << endl;
-        cout << "transition: " << fsm[*state].front().pattern
-             << ", then go to state " << fsm[*state].front().nstate;
-        rstRecord.push_back(inputSequence.size());
-        inputSequence.push_back(fsm[*state].front().defaultPattern());
-        Direction temp = Direction({*state,&(fsm[*state].front())});
-        *state = fsm[*state].front().nstate;
-        *varMap["out"] = fsm[*state].front().out;
-        cout << ", out is " << *varMap["out"] << endl;
-        stack.push_back(temp);
-        while (stack.size()) {
-            cout << endl;
-            bool pop_back = true;
-            cout << "current state: " << *state << endl;
-            // if ( fsmIt[*state] == fsm[*state].end() ){
-            //     fsmIt[*state] = fsm[*state].begin();
-            //     stack.pop_back();
-            // }
-            // else {
-            //     inputSequence.push_back(fsmIt[*state]->defaultPattern());
-            //     stack.push_back(Direction({*state,&(*fsmIt[*state])}));
-            //     if ( outputSignalActivator(io.second, asrt.trigger.change, *fsmIt[*state]) ){
-            //         cout << "transition: " << fsmIt[*state]->pattern
-            //         << ", then go to state " << fsmIt[*state]->nstate;
-            //         cout << ", out is " << fsmIt[*state]->out << endl;
-            //         cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-            //         cout << "Assertion has been activated." << endl;
-            //         cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-            //         paths.push_back(stack);
-            //         stack.pop_back();
-            //     }
-            //     unsigned int buf = *state;
-            //     *state = fsmIt[buf]->nstate;
-            //     *varMap["out"] = fsmIt[buf]->out;
-            //     cout << "transition: " << fsmIt[buf]->pattern
-            //         << ", then go to state " << *state;
-            //     cout << ", out is " << *varMap["out"] << endl;
-            //     fsmIt[buf]++;
-            // }
-            for ( auto it = fsm[*state].begin() ; it != fsm[*state].end() ; ++it ){
-                if ( !traversalChecker( stack, &(*it) ) ){
-                    inputSequence.push_back(it->defaultPattern());
-                    stack.push_back(Direction({*state,&(*it)}));
-                    if ( outputSignalActivator(io.second, asrt.trigger.change, *it) ){
-                        cout << "transition: " << it->pattern
-                             << ", then go to state " << it->nstate;
-                        cout << ", out is " << it->out << endl;
-                        cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-                        cout << "Assertion has been activated." << endl;
-                        cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-                        paths.push_back(stack);
-                        break;
+    cout << "input-signal-activated assertion." << endl;
+    for (int i = 0; i < FSM.size(); ++i) {
+        for (auto it1 = FSM[i]->transitions.begin(); it1 != FSM[i]->transitions.end(); ++it1) {
+            Pattern expectedPattern1 = (*it1)->pattern;
+            if (expectedPattern1[index] == !triggerFlag || expectedPattern1[index] == 2)
+                expectedPattern1[index] = !triggerFlag;
+            else
+                continue;
+            if ((*it1)->pattern == expectedPattern1) {
+                for (auto it2 = FSM[(*it1)->nState->label]->transitions.begin(); it2 != FSM[(*it1)->nState->label]->transitions.end(); ++it2) {
+                    Pattern expectedPattern2 = (*it2)->pattern;
+                    if (expectedPattern2[index] == triggerFlag || expectedPattern2[index] == 2)
+                        expectedPattern2[index] = triggerFlag;
+                    else
+                        continue;
+                    if ((*it2)->pattern == expectedPattern2) {
+                        ISAPList.push_back(ActivatedPoint2({ FSM[i], (*it1)->nState, expectedPattern1, expectedPattern2, *it1, *it2 }));
                     }
-                    *state = it->nstate;
-                    *varMap["out"] = it->out;
-                    cout << "transition: " << it->pattern
-                         << ", then go to state " << *state;
-                    cout << ", out is " << *varMap["out"] << endl;
-                    pop_back = false;
-                    break;
-                }
-            }
-            if ( pop_back )
-                stack.pop_back();
-        }
-    } else {
-        cout << "input-signal-activated assertion." << endl;
-    }
-}
-
-bool traversalChecker( std::list<Direction>& stack , Transition* transition  ){
-    for ( auto it = stack.begin() ; it != stack.end() ; ++it ){
-        if ( it->transition == transition )
-            return true;
-    }
-    return false;
-}
-
-bool outputSignalActivator( unsigned int index, bool triggerFlag, Transition& transition ){
-    cout << "outputSignalActivator para: " << index << " " << triggerFlag << endl;
-    cout << "current out[" << index << "] is " << (*varMap["out"])[ptnSize-1-index] << endl;
-    cout << "next out[" << index << "] is " << transition.out[ptnSize-1-index] << endl;
-    if ( (*varMap["out"])[ptnSize-1-index] == !triggerFlag && transition.out[ptnSize-1-index] == triggerFlag )
-        return true;
-    return false;
-}
-
-bool outActivate(unsigned int index, unsigned int triggerFlag)
-{
-
-    cout << "Out Activate start.\n";
-    cout << "Current state: " << *state << endl;
-    for (auto it = fsm[*state].begin(); it != fsm[*state].end(); ++it) {
-        //first meet
-        if (it->out[index] == triggerFlag && !it->traversed) {
-            cout << "Assertion has been activated!\n";
-            it->traversed = true;
-            *state = it->nstate;
-            *varMap["out"] = it->out;
-            inputSequence.push_back(it->defaultPattern());
-            printOutputSequence();
-            cout << "Next state: " << *state << endl;
-            return true;
-        } else if (it->out[index] == triggerFlag) {
-            cout << "Assertion has been activated!\n";
-            unsigned int idx = rand() % fsm[*state].size();
-            unsigned int i = 0;
-            for (auto rand_it = fsm[*state].begin(); rand_it != fsm[*state].end(); ++rand_it, ++i) {
-                if (i == idx) {
-                    *state = rand_it->nstate;
-                    *varMap["out"] = rand_it->out;
-                    inputSequence.push_back(rand_it->defaultPattern());
-                    printOutputSequence();
-                    cout << "Next state: " << *state << endl;
-                    return true;
                 }
             }
         }
     }
-    for (auto it = fsm[*state].begin(); it != fsm[*state].end(); ++it) {
-        if (*state != it->nstate && !it->traversed) {
-            it->traversed = true;
-            *state = it->nstate;
-            *varMap["out"] = it->out;
-            inputSequence.push_back(it->defaultPattern());
-            printOutputSequence();
-            cout << "Next state: " << *state << endl;
-            break;
-        } else if (*state != it->nstate) {
-            unsigned int idx = rand() % fsm[*state].size();
-            unsigned int i = 0;
-            for (auto rand_it = fsm[*state].begin(); rand_it != fsm[*state].end(); ++rand_it, ++i) {
-                if (i == idx) {
-                    *state = rand_it->nstate;
-                    *varMap["out"] = rand_it->out;
-                    inputSequence.push_back(rand_it->defaultPattern());
-                    printOutputSequence();
-                    cout << "Next state: " << *state << endl;
-                    break;
+    printActivatedPoint(false);
+}
+void iterativelyEvalStateLayer()
+{
+    std::list< int > queue;
+    queue.push_back(0);
+    while (queue.size()) {
+        for (auto it = FSM[queue.front()]->transitions.begin(); it != FSM[queue.front()]->transitions.end(); ++it) {
+            if (layerTable[queue.front()] + 1 < layerTable[(*it)->nState->label] && (*it)->nState->label != queue.back()) {
+                layerTable[(*it)->nState->label] = layerTable[queue.front()] + 1;
+                if (rlayerTable.find(layerTable[queue.front()] + 1) != rlayerTable.end())
+                    rlayerTable[layerTable[queue.front()] + 1].push_back((*it)->nState->label);
+                else {
+                    std::list< int > stateList;
+                    stateList.push_back((*it)->nState->label);
+                    rlayerTable[layerTable[queue.front()] + 1] = stateList;
                 }
+                queue.push_back((*it)->nState->label);
             }
-            break;
         }
-    }
-    return false;
-}
-
-void reset()
-{
-    cout << "Reset." << endl;
-    rstRecord.push_back(inputSequence.size());
-    *state = 0;
-    for (auto it = fsm[*state].begin(); it != fsm[*state].end(); ++it) {
-        if (!it->traversed) {
-            it->traversed = true;
-            *state = it->nstate;
-            *varMap["out"] = it->out;
-            inputSequence.push_back(it->defaultPattern());
-            printOutputSequence();
-            cout << "Next state: " << *state << endl;
-            return;
-        }
-    }
-    unsigned int index = rand() % fsm[*state].size();
-    unsigned int i = 0;
-    for (auto it = fsm[*state].begin(); it != fsm[*state].end(); ++it, ++i) {
-        if (i == index) {
-            *state = it->nstate;
-            *varMap["out"] = it->out;
-            inputSequence.push_back(it->defaultPattern());
-            printOutputSequence();
-            cout << "Next state: " << *state << endl;
-            return;
-        }
-    }
-}
-
-bool recursionChecker(int nstate)
-{
-    for (auto it = fsm[nstate].begin(); it != fsm[nstate].end(); ++it) {
-        if (it->nstate == *state)
-            return true;
-    }
-    return false;
-}
-
-void terminator(Assertion& asrt)
-{
-}
-
-void preOperationForSimulator()
-{
-    (*state) = 0;
-    rstRecord.push_back(inputSequence.size());
-    for (auto it = fsm[(*state)].begin(); it != fsm[(*state)].end(); ++it) {
-        if (it->pattern == inputSequence[inputSequence.size() - 1]) {
-            inputSequence.push_back(Pattern<>(ptnSize));
-            (*varMap["out"]) = it->out;
-            (*state) = it->nstate;
-            break;
-        }
+        queue.pop_front();
     }
 }
 
@@ -351,4 +198,34 @@ void printOutputSequence()
         cout << (*varMap["out"])[i];
     }
     cout << endl;
+}
+
+void printActivatedPoint(int mode)
+{
+    if (mode) {
+        for (auto it = OSAPList.begin(); it != OSAPList.end(); ++it) {
+            cout << "(S" << it->state1->label << ") -> " << it->transition1->pattern
+                 << " | out: " << it->transition1->out << " => (S" << it->state2->label
+                 << ") -> " << it->transition2->pattern << " | out: " << it->transition2->out << endl;
+            ;
+        }
+    } else {
+        for (auto it = ISAPList.begin(); it != ISAPList.end(); ++it) {
+            cout << "(S" << it->state1->label << ") -> " << it->p1
+                 << " | out: " << it->transition1->out << " => (S" << it->state2->label
+                 << ") -> " << it->p2 << " | out: " << it->transition2->out << endl;
+        }
+    }
+    cout << endl
+         << endl;
+}
+
+void printStateLayer()
+{
+    for (auto it = rlayerTable.begin(); it != rlayerTable.end(); ++it) {
+        cout << "Layer" << it->first << ": ";
+        for (auto stateIt = it->second.begin(); stateIt != it->second.end(); ++stateIt)
+            cout << *stateIt << ", ";
+        cout << endl;
+    }
 }

@@ -10,7 +10,7 @@ State::From::From(State* state, Transition* transition)
 }
 
 State::State(int label)
-    : _label(label)
+    : label(label)
 {
 }
 
@@ -55,6 +55,6 @@ Pattern Transition::defaultPattern()
 
 std::ostream& operator<<(std::ostream& os, const Transition& transition)
 {
-    return os << "Match: " << transition.pattern << " then go to State=>" << transition.nState->label() << " output: " << transition.out;
+    return os << "Match: " << transition.pattern << " then go to State=>" << transition.nState->label << " output: " << transition.out;
 }
 }
