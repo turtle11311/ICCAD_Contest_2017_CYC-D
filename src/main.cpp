@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <limits>
 
 using namespace SVParser;
 using std::cout;
@@ -28,45 +29,54 @@ struct ActivatedPoint2 {
     Transition *transition1, *transition2;
 };
 
+#define INT_MAX std::numeric_limits<int>::max()
+
 int ptnSize;
 int* state = new int;
 std::vector< Pattern<> > inputSequence;
 std::vector< unsigned int > rstRecord;
 std::list< ActivatedPoint1 > OSAPList;
 std::list< ActivatedPoint2 > ISAPList;
-std::map<int,std::list<Transition>::iterator> transitionIt;
 std::map<int,int> layerTable;
+std::map<int,std::list<int>> rlayerTable;
 
+void preProcessor();
 void initializer();
 void simulator();
 void staticFindActivatedPoint(Assertion&);
 void staticFindOutputSignalActivatedPoint(bool, unsigned int);
 void staticFindInputSignalActivatedPoint(bool, unsigned int);
-void iterativeDFS();
+void iterativelyEvalStateLayer();
 std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
 void printOutputSequence();
 void printActivatedPoint(int);
+void printStateLayer();
 int main(int argc, const char* argv[])
 {
     yyparse();
-    ptnSize = fsm[0].front().pattern.size();
-    for (int i = 0; i < fsm.size(); ++i) {
-        transitionIt[i] = fsm[i].begin();
-        layerTable[i] = 2147483647;
-    }
-    layerTable[*state] = 0;
-    // iterativeDFS();
-    // for (int i = 0; i < fsm.size(); ++i) {
-    //     cout << "S" << i << ": ";
-    //     cout << layerTable[i] << endl;
-    // }
-    simulator();
+    preProcessor();
+    printStateLayer();
+    //simulator();
     for (auto it = varMap.begin(); it != varMap.end(); ++it) {
         delete it->second;
     }
     delete state;
     return EXIT_SUCCESS;
+}
+
+void preProcessor(){
+    // record pattern size
+    ptnSize = fsm[0].front().pattern.size();
+    // initialize each state's layer = 2147483647
+    for (int i = 0; i < fsm.size(); ++i)
+        layerTable[i] = INT_MAX;
+    layerTable[0] = 0;
+    // initialize initial layer S0
+    std::list<int> tl; tl.push_back(0);
+    rlayerTable[0] = tl;
+
+    iterativelyEvalStateLayer();
 }
 
 void initializer()
@@ -142,28 +152,25 @@ void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index)
     }
     printActivatedPoint(false);
 }
-
-void iterativeDFS(){
-    int* ptr = new int(0);
-    std::list<Transition> stack;
-    stack.push_back(*(transitionIt[*ptr]++));
-    while( stack.size() ){
-        if ( transitionIt[*ptr] == fsm[*ptr].end() ){
-            stack.pop_back();
-            transitionIt[*ptr] = fsm[*ptr].begin();
-        }
-        else {
-            std::list<Transition>::iterator it = transitionIt[*ptr];
-
-            if ( layerTable[*ptr] + 1 < layerTable[it->nstate] ){
-                layerTable[it->nstate] = layerTable[*ptr] + 1;
-                stack.push_back(*(transitionIt[*ptr]++));
-                *ptr = it->nstate;
+void iterativelyEvalStateLayer(){
+    std::list<int> queue;
+    queue.push_back(0);
+    while(queue.size()){
+        for ( auto it = fsm[queue.front()].begin() ; it != fsm[queue.front()].end() ; ++it ){
+            if ( layerTable[queue.front()]+1 < layerTable[it->nstate] && it->nstate != queue.back() ){
+                layerTable[it->nstate] = layerTable[queue.front()] + 1;
+                if ( rlayerTable.find(layerTable[queue.front()]+1) != rlayerTable.end() )
+                    rlayerTable[layerTable[queue.front()]+1].push_back(it->nstate);
+                else{
+                    std::list<int> stateList;
+                    stateList.push_back(it->nstate);
+                    rlayerTable[layerTable[queue.front()]+1] = stateList;
+                }
+                queue.push_back(it->nstate);
             }
-            transitionIt[*ptr]++;
         }
+        queue.pop_front();
     }
-    delete ptr;
 }
 
 std::pair< bool, unsigned int > find(unsigned short* target)
@@ -213,4 +220,13 @@ void printActivatedPoint(int mode)
     }
     cout << endl
          << endl;
+}
+
+void printStateLayer(){
+    for ( auto it = rlayerTable.begin() ; it != rlayerTable.end(); ++it ){
+        cout << "Layer" << it->first << ": ";
+        for ( auto stateIt = it->second.begin() ; stateIt != it->second.end() ; ++stateIt )
+             cout << *stateIt << ", ";
+        cout << endl;
+    }
 }
