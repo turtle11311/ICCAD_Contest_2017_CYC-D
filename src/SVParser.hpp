@@ -1,11 +1,8 @@
 #pragma once
+#include "FiniteStateMachine.hpp"
 #include "Pattern.hpp"
-#include <algorithm>
 #include <cstdlib>
-#include <cstring>
-#include <iostream>
 #include <utility>
-#include <vector>
 
 namespace SVParser {
 
@@ -22,33 +19,6 @@ public:
     {
     }
     inline size_t length() { return std::abs(static_cast< int >(first - second)) + 1; }
-};
-
-struct Transition {
-    Transition(){};
-    Transition(const Transition& rhs)
-        : pattern(rhs.pattern)
-        , nstate(rhs.nstate)
-        , out(rhs.out)
-    {
-    }
-    Transition(const char* pattern, int nstate, const char* out)
-        : pattern(pattern)
-        , nstate(nstate)
-        , out(out)
-    {
-    }
-    const Transition& operator=(const Transition& rhs)
-    {
-        Transition cpy(rhs);
-        std::swap(pattern, cpy.pattern);
-        std::swap(nstate, cpy.nstate);
-        std::swap(out, cpy.out);
-        return *this;
-    }
-    Pattern pattern;
-    int nstate;
-    Pattern out;
 };
 
 struct SignalChange {

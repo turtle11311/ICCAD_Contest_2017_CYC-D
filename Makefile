@@ -12,7 +12,7 @@ all: $(TARGET)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
-$(TARGET): main.o SVParser.tab.o SVParser.lex.o Pattern.o
+$(TARGET): main.o SVParser.tab.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 SVParser.lex.cpp: SVParser.l SVParser.y

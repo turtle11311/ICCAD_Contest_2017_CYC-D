@@ -18,17 +18,15 @@ using std::cout;
 using std::endl;
 
 // Variable
+FiniteStateMachine FSM;
 std::map<std::string, Pattern* > varMap;
 std::vector<std::string*> nameList;
-std::map<std::string, unsigned int> parameterTable;
-
-Transition trans;
-std::list<Transition> transList;
-std::map<int, std::list<Transition> > fsm;
+std::map<std::string, unsigned int> paraTable;
 
 Assertion asrt;
 std::list<Assertion> asrtList;
 
+int nowState = -1;
 %}
 
 %union {
@@ -73,6 +71,7 @@ std::list<Assertion> asrtList;
 %type <string> assertion_identifier
 %type <string> port_identifier
 %type <string> parameter_identifier
+%type <integer> parameter
 %type <integer> number
 %type <range> range
 %type <pattern> bit_pattern
@@ -167,7 +166,7 @@ parameter_assignment_list
 parameter_assignment
         : parameter_identifier '=' number
         {
-            parameterTable[*$1] = $3;
+            paraTable[*$1] = $3;
         }
         ;
 
@@ -219,10 +218,7 @@ case_list
         ;
 
 case
-        : parameter_identifier ':' casex_contruct
-        {
-            fsm[parameterTable[*$1]] = std::move(transList);
-        }
+        : parameter { nowState = $1; } ':' casex_contruct
         ;
 
 casex_contruct
@@ -231,23 +227,14 @@ casex_contruct
 
 casex_list
         : casex_list casex
-        {
-            transList.push_back(trans);
-        }
         | casex
-        {
-            transList.clear();
-            transList.push_back(trans);
-        }
         ;
 
 casex
-        : BIT_LABEL ':' "begin" port_identifier '=' parameter_identifier ';'
-          port_identifier '=' bit_pattern ';' "end"
+        : BIT_LABEL[pattern] ':' "begin" port_identifier '=' parameter[nState] ';'
+          port_identifier '=' bit_pattern[out] ';' "end"
         {
-            trans.pattern = *$1;
-            trans.nstate = parameterTable[*$6];
-            trans.out = *$10;
+            FSM.insesrtTransition(nowState, std::move(*$pattern), $nState, std::move(*$out));
         }
         ;
 
@@ -300,6 +287,10 @@ number
         {
             sscanf($1->c_str(), "%u", &$$);
         }
+        ;
+
+parameter
+        : parameter_identifier { $$ = paraTable[*$1]; }
         ;
 
 edge_identifier
