@@ -1,8 +1,8 @@
 #include "SVParser.hpp"
+#include <climits>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
-#include <climits>
 #include <list>
 #include <map>
 #include <string>
@@ -14,7 +14,6 @@ using std::endl;
 
 extern int yyparse(void);
 
-extern std::map< std::string, Pattern* > varMap;
 extern std::list< Assertion > asrtList;
 extern FiniteStateMachine FSM;
 
@@ -45,9 +44,7 @@ void staticFindActivatedPoint(Assertion&);
 void staticFindOutputSignalActivatedPoint(bool, unsigned int);
 void staticFindInputSignalActivatedPoint(bool, unsigned int);
 void iterativelyEvalStateLayer();
-std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
-void printOutputSequence();
 void printActivatedPoint(int);
 void printStateLayer();
 int main(int argc, const char* argv[])
@@ -55,10 +52,9 @@ int main(int argc, const char* argv[])
     yyparse();
     preProcessor();
     printStateLayer();
-    //simulator();
-    for (auto it = varMap.begin(); it != varMap.end(); ++it) {
-        delete it->second;
-    }
+    simulator();
+    // printActivatedPoint(1);
+
     delete state;
     return EXIT_SUCCESS;
 }
@@ -95,9 +91,8 @@ void simulator()
 
 void staticFindActivatedPoint(Assertion& asrt)
 {
-    std::pair< bool, unsigned int > io = find(asrt.trigger.target);
-    bool triggerFlag = io.first;
-    unsigned int index = io.second;
+    bool triggerFlag = asrt.trigger.target == Assertion::TargetType::OUT ? true : false;
+    unsigned int index = asrt.trigger.index;
     cout << "Activated target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
          << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
     if (triggerFlag)
@@ -171,33 +166,11 @@ void iterativelyEvalStateLayer()
     }
 }
 
-std::pair< bool, unsigned int > find(unsigned short* target)
-{
-    std::pair< bool, unsigned int > res;
-    if (target >= &(*varMap["out"])[0]) {
-        res.first = true;
-        res.second = (target - &(*varMap["out"])[0]) * 2 / sizeof(unsigned short);
-    } else {
-        res.first = false;
-        res.second = (target - &(*varMap["in"])[0]) * 2 / sizeof(unsigned short);
-    }
-    return res;
-}
-
 void printInputSequence()
 {
     cout << "Result: \n";
     for (auto it = inputSequence.begin(); it != inputSequence.end(); ++it)
         cout << *it << endl;
-}
-
-void printOutputSequence()
-{
-    cout << "Current output sequence: ";
-    for (unsigned int i = 0; i < varMap["out"]->size(); ++i) {
-        cout << (*varMap["out"])[i];
-    }
-    cout << endl;
 }
 
 void printActivatedPoint(int mode)

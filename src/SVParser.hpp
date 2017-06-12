@@ -21,12 +21,22 @@ public:
     inline size_t length() { return std::abs(static_cast< int >(first - second)) + 1; }
 };
 
-struct SignalChange {
-    unsigned int change;
-    unsigned short* target;
-};
-
 struct Assertion {
+    enum class TargetType {
+        IN,
+        OUT
+    };
+    enum class SignalEdge {
+        ROSE,
+        FELL,
+        STABLE
+    };
+    struct SignalChange {
+        Assertion::SignalEdge change;
+        Assertion::TargetType target;
+        size_t index;
+    };
+
     bool activated;
     bool failed;
     SignalChange trigger;
