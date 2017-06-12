@@ -11,6 +11,7 @@ State::From::From(State* state, Transition* transition)
 
 State::State(int label)
     : label(label)
+    ,traversed(false)
 {
 }
 

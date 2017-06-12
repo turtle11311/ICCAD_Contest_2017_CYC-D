@@ -1,6 +1,8 @@
 #include "FiniteStateMachine.hpp"
 #include <iostream>
 #include <utility>
+using std::endl;
+using std::cout;
 
 namespace SVParser {
 FiniteStateMachine::FiniteStateMachine()
@@ -31,5 +33,11 @@ FiniteStateMachine::~FiniteStateMachine()
 {
     for (auto it = this->begin(); it != this->end(); ++it)
         delete it->second;
+}
+
+void FiniteStateMachine::printStateLayer(){
+    for (auto it = this->begin() ; it != this->end() ; ++it ){
+        cout << "S" << it->second->label << ": " << it->second->layer << endl;
+    }
 }
 }

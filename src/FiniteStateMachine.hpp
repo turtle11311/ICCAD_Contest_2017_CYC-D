@@ -17,6 +17,7 @@ public:
     inline size_t inputSize() { return PATTERNSIZE; }
     State* getState(int state);
     void insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out);
+    void printStateLayer();
     ~FiniteStateMachine();
 
 private:

@@ -5,6 +5,8 @@
 #include <utility>
 #include "State.hpp"
 #include <list>
+using std::endl;
+using std::cout;
 
 namespace SVParser {
 
@@ -41,5 +43,23 @@ struct Assertion {
     SignalChange event;
     Range time;
     std::list<ActivatedPoint> APList;
+    void sortActivatedPointByLayer(){
+        for ( auto it1 = APList.begin() ; it1 != APList.end(); ++it1 ){
+            for ( auto it2 = APList.begin() ; it2 != APList.end() ; ++it2 ){
+                if ( it2->state->layer < it1->state->layer ){
+
+                }
+            }
+        }
+    }
+    void printActivatedPoint(){
+        cout <<APList.size() << endl;
+        for (auto it = APList.begin(); it != APList.end(); ++it) {
+            cout << "(S" << it->state->label << ") -> " << it->pattern1
+            << " | out: " << it->transition1->out << " => (S" << it->transition1->nState->label
+            << ") -> " << it->pattern2 << " | out: " << it->transition2->out << endl;
+        }
+        cout << endl << endl;
+    }
 };
 }

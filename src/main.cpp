@@ -32,17 +32,21 @@ void staticFindActivatedPoint(Assertion&);
 void staticFindOutputSignalActivatedPoint(bool, unsigned int, std::list<ActivatedPoint>&);
 void staticFindInputSignalActivatedPoint(bool, unsigned int,std::list<ActivatedPoint>&);
 void iterativelyEvalStateLayer();
+void fromActivatedPoint2AssertionFailed();
 std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
 void printOutputSequence();
-void printActivatedPoint(int, std::list<ActivatedPoint>&);
-void printStateLayer();
+void printStateLayer(int);
 int main(int argc, const char* argv[])
 {
     yyparse();
     preProcessor();
-    printStateLayer();
-    //simulator();
+    //printStateLayer();
+    simulator();
+    int count = 0;
+    for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
+        cout << "Assertion: " << ++count << endl;
+    }
     for (auto it = varMap.begin(); it != varMap.end(); ++it) {
         delete it->second;
     }
@@ -61,6 +65,8 @@ void preProcessor()
     rlayerTable[0] = std::move(std::list< int >(1, 0));
 
     iterativelyEvalStateLayer();
+    printStateLayer(true);
+    // FSM.printStateLayer();
 }
 
 void initializer()
@@ -77,6 +83,7 @@ void simulator()
         cout << "Assertion: " << ++count << endl;
         initializer();
         staticFindActivatedPoint(*it);
+        it->printActivatedPoint();
     }
 }
 
@@ -107,7 +114,6 @@ void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index,s
             }
         }
     }
-    printActivatedPoint(true, APList);
 }
 
 void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index,std::list<ActivatedPoint>& APList)
@@ -134,18 +140,21 @@ void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index,st
             }
         }
     }
-    printActivatedPoint(false,APList);
 }
+
 void iterativelyEvalStateLayer()
 {
     std::list< int > queue;
     queue.push_back(0);
     while (queue.size()) {
+        FSM[queue.front()]->traversed = true;
         for (auto it = FSM[queue.front()]->transitions.begin(); it != FSM[queue.front()]->transitions.end(); ++it) {
             if (layerTable[queue.front()] + 1 < layerTable[(*it)->nState->label] && (*it)->nState->label != queue.back()) {
                 layerTable[(*it)->nState->label] = layerTable[queue.front()] + 1;
-                if (rlayerTable.find(layerTable[queue.front()] + 1) != rlayerTable.end())
+                if (rlayerTable.find(layerTable[queue.front()] + 1) != rlayerTable.end()){
                     rlayerTable[layerTable[queue.front()] + 1].push_back((*it)->nState->label);
+                    (*it)->nState->layer = layerTable[queue.front()] + 1;
+                }
                 else {
                     std::list< int > stateList;
                     stateList.push_back((*it)->nState->label);
@@ -155,6 +164,22 @@ void iterativelyEvalStateLayer()
             }
         }
         queue.pop_front();
+    }
+}
+
+void fromActivatedPoint2AssertionFailed( Assertion& asrt ){
+
+    std::pair< bool, unsigned int > io = find(asrt.trigger.target);
+    bool triggerFlag = io.first;
+    unsigned int index = io.second;
+    for ( auto APit = asrt.APList.begin() ; APit != asrt.APList.end() ; ++APit ){
+        std::list< int > queue;
+        queue.push_back(APit->state->label);
+        while (queue.size()) {
+            for (auto it = FSM[queue.front()]->transitions.begin(); it != FSM[queue.front()]->transitions.end(); ++it) {
+            }
+            queue.pop_front();
+        }
     }
 }
 
@@ -187,32 +212,20 @@ void printOutputSequence()
     cout << endl;
 }
 
-void printActivatedPoint(int mode, std::list<ActivatedPoint>& APList)
+void printStateLayer(int mode)
 {
-    if (mode) {
-        for (auto it = APList.begin(); it != APList.end(); ++it) {
-            cout << "(S" << it->state->label << ") -> " << it->pattern1
-                 << " | out: " << it->transition1->out << " => (S" << it->transition1->nState
-                 << ") -> " << it->pattern2 << " | out: " << it->transition2->out << endl;
-            ;
+    if ( mode ){
+        int count = 0;
+        for (auto it = layerTable.begin(); it != layerTable.end(); ++it) {
+            cout << "S" << count << ": " << *it << (!FSM[count]->traversed?"X":"") << endl;
+            count++;
         }
     } else {
-        for (auto it = APList.begin(); it != APList.end(); ++it) {
-            cout << "(S" << it->state->label << ") -> " << it->pattern1
-                 << " | out: " << it->transition1->out << " => (S" << it->transition1->nState
-                 << ") -> " << it->pattern2 << " | out: " << it->transition2->out << endl;
-        }
-    }
-    cout << endl
-         << endl;
-}
-
-void printStateLayer()
-{
-    for (auto it = rlayerTable.begin(); it != rlayerTable.end(); ++it) {
-        cout << "Layer" << it->first << ": ";
-        for (auto stateIt = it->second.begin(); stateIt != it->second.end(); ++stateIt)
+        for (auto it = rlayerTable.begin(); it != rlayerTable.end(); ++it) {
+            cout << "Layer" << it->first << ": ";
+            for (auto stateIt = it->second.begin(); stateIt != it->second.end(); ++stateIt)
             cout << *stateIt << ", ";
-        cout << endl;
+            cout << endl;
+        }
     }
 }
