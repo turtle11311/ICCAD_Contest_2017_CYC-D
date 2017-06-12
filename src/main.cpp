@@ -61,12 +61,13 @@ void preProcessor()
     // initialize each state's layer = 2147483647
     layerTable.assign(FSM.size(), INT_MAX);
     layerTable[0] = 0;
+    FSM[0]->layer = 0;
     // initialize initial layer S0
     rlayerTable[0] = std::move(std::list< int >(1, 0));
 
     iterativelyEvalStateLayer();
-    printStateLayer(true);
-    // FSM.printStateLayer();
+    // printStateLayer(true);
+     FSM.printStateLayer();
 }
 
 void initializer()
@@ -146,14 +147,16 @@ void iterativelyEvalStateLayer()
 {
     std::list< int > queue;
     queue.push_back(0);
+    int count = 0;
     while (queue.size()) {
         FSM[queue.front()]->traversed = true;
         for (auto it = FSM[queue.front()]->transitions.begin(); it != FSM[queue.front()]->transitions.end(); ++it) {
+            if ( (*it)->nState->label == 5 ) count++;
             if (layerTable[queue.front()] + 1 < layerTable[(*it)->nState->label] && (*it)->nState->label != queue.back()) {
                 layerTable[(*it)->nState->label] = layerTable[queue.front()] + 1;
+                (*it)->nState->layer = layerTable[queue.front()] + 1;
                 if (rlayerTable.find(layerTable[queue.front()] + 1) != rlayerTable.end()){
                     rlayerTable[layerTable[queue.front()] + 1].push_back((*it)->nState->label);
-                    (*it)->nState->layer = layerTable[queue.front()] + 1;
                 }
                 else {
                     std::list< int > stateList;
@@ -165,6 +168,7 @@ void iterativelyEvalStateLayer()
         }
         queue.pop_front();
     }
+    cout << count << "!!!!!!!!!!!!!!!!!!\n";
 }
 
 void fromActivatedPoint2AssertionFailed( Assertion& asrt ){
