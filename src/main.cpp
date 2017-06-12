@@ -18,23 +18,10 @@ extern std::map< std::string, Pattern* > varMap;
 extern std::list< Assertion > asrtList;
 extern FiniteStateMachine FSM;
 
-struct ActivatedPoint1 {
-    State *state1, *state2;
-    Transition *transition1, *transition2;
-};
-
-struct ActivatedPoint2 {
-    State *state1, *state2;
-    Pattern p1, p2;
-    Transition *transition1, *transition2;
-};
-
 int ptnSize;
 int* state = new int;
 std::vector< Pattern > inputSequence;
 std::vector< unsigned int > rstRecord;
-std::list< ActivatedPoint1 > OSAPList;
-std::list< ActivatedPoint2 > ISAPList;
 std::vector< int > layerTable;
 std::map< int, std::list< int > > rlayerTable;
 
@@ -42,13 +29,13 @@ void preProcessor();
 void initializer();
 void simulator();
 void staticFindActivatedPoint(Assertion&);
-void staticFindOutputSignalActivatedPoint(bool, unsigned int);
-void staticFindInputSignalActivatedPoint(bool, unsigned int);
+void staticFindOutputSignalActivatedPoint(bool, unsigned int, std::list<ActivatedPoint>&);
+void staticFindInputSignalActivatedPoint(bool, unsigned int,std::list<ActivatedPoint>&);
 void iterativelyEvalStateLayer();
 std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
 void printOutputSequence();
-void printActivatedPoint(int);
+void printActivatedPoint(int, std::list<ActivatedPoint>&);
 void printStateLayer();
 int main(int argc, const char* argv[])
 {
@@ -101,12 +88,12 @@ void staticFindActivatedPoint(Assertion& asrt)
     cout << "Activated target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
          << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
     if (triggerFlag)
-        staticFindOutputSignalActivatedPoint(triggerFlag, index);
+        staticFindOutputSignalActivatedPoint(triggerFlag, index,asrt.APList);
     else
-        staticFindInputSignalActivatedPoint(triggerFlag, index);
+        staticFindInputSignalActivatedPoint(triggerFlag, index,asrt.APList);
 }
 
-void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index)
+void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index,std::list<ActivatedPoint>& APList)
 {
     cout << "output-signal-activated assertion." << endl;
     for (int i = 0; i < FSM.size(); ++i) {
@@ -114,16 +101,16 @@ void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index)
             if ((*it1)->out[index] == !triggerFlag) {
                 for (auto it2 = FSM[(*it1)->nState->label]->transitions.begin(); it2 != FSM[(*it1)->nState->label]->transitions.end(); ++it2) {
                     if ((*it2)->out[index] == triggerFlag) {
-                        OSAPList.push_back(ActivatedPoint1({ FSM[i], (*it1)->nState, *it1, *it2 }));
+                        APList.push_back(ActivatedPoint({ FSM[i], (*it1)->defaultPattern(),(*it2)->defaultPattern(), *it1, *it2 }));
                     }
                 }
             }
         }
     }
-    printActivatedPoint(true);
+    printActivatedPoint(true, APList);
 }
 
-void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index)
+void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index,std::list<ActivatedPoint>& APList)
 {
     cout << "input-signal-activated assertion." << endl;
     for (int i = 0; i < FSM.size(); ++i) {
@@ -141,13 +128,13 @@ void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index)
                     else
                         continue;
                     if ((*it2)->pattern == expectedPattern2) {
-                        ISAPList.push_back(ActivatedPoint2({ FSM[i], (*it1)->nState, expectedPattern1, expectedPattern2, *it1, *it2 }));
+                        APList.push_back(ActivatedPoint({ FSM[i], expectedPattern1, expectedPattern2, *it1, *it2 }));
                     }
                 }
             }
         }
     }
-    printActivatedPoint(false);
+    printActivatedPoint(false,APList);
 }
 void iterativelyEvalStateLayer()
 {
@@ -200,20 +187,20 @@ void printOutputSequence()
     cout << endl;
 }
 
-void printActivatedPoint(int mode)
+void printActivatedPoint(int mode, std::list<ActivatedPoint>& APList)
 {
     if (mode) {
-        for (auto it = OSAPList.begin(); it != OSAPList.end(); ++it) {
-            cout << "(S" << it->state1->label << ") -> " << it->transition1->pattern
-                 << " | out: " << it->transition1->out << " => (S" << it->state2->label
-                 << ") -> " << it->transition2->pattern << " | out: " << it->transition2->out << endl;
+        for (auto it = APList.begin(); it != APList.end(); ++it) {
+            cout << "(S" << it->state->label << ") -> " << it->pattern1
+                 << " | out: " << it->transition1->out << " => (S" << it->transition1->nState
+                 << ") -> " << it->pattern2 << " | out: " << it->transition2->out << endl;
             ;
         }
     } else {
-        for (auto it = ISAPList.begin(); it != ISAPList.end(); ++it) {
-            cout << "(S" << it->state1->label << ") -> " << it->p1
-                 << " | out: " << it->transition1->out << " => (S" << it->state2->label
-                 << ") -> " << it->p2 << " | out: " << it->transition2->out << endl;
+        for (auto it = APList.begin(); it != APList.end(); ++it) {
+            cout << "(S" << it->state->label << ") -> " << it->pattern1
+                 << " | out: " << it->transition1->out << " => (S" << it->transition1->nState
+                 << ") -> " << it->pattern2 << " | out: " << it->transition2->out << endl;
         }
     }
     cout << endl

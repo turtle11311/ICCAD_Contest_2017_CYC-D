@@ -3,8 +3,16 @@
 #include "Pattern.hpp"
 #include <cstdlib>
 #include <utility>
+#include "State.hpp"
+#include <list>
 
 namespace SVParser {
+
+struct ActivatedPoint{
+    State* state;
+    Pattern pattern1, pattern2;
+    Transition *transition1, *transition2;
+};
 
 class Range : public std::pair< size_t, size_t > {
     typedef std::pair< size_t, size_t > _Base;
@@ -32,5 +40,6 @@ struct Assertion {
     SignalChange trigger;
     SignalChange event;
     Range time;
+    std::list<ActivatedPoint> APList;
 };
 }
