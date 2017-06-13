@@ -14,7 +14,6 @@ using std::endl;
 
 extern int yyparse(void);
 
-extern std::map< std::string, Pattern* > varMap;
 extern std::list< Assertion > asrtList;
 extern FiniteStateMachine FSM;
 
@@ -33,26 +32,17 @@ void staticFindOutputSignalActivatedPoint(bool, unsigned int, std::list< Activat
 void staticFindInputSignalActivatedPoint(bool, unsigned int, std::list< ActivatedPoint >&);
 void iterativelyEvalStateLayer();
 void fromActivatedPoint2AssertionFailed();
-std::pair< bool, unsigned int > find(unsigned short*);
 void printInputSequence();
-void printOutputSequence();
-void printStateLayer(int);
+void printActivatedPoint(int);
+void printStateLayer();
 int main(int argc, const char* argv[])
 {
     yyparse();
     preProcessor();
-    //printStateLayer();
+    printStateLayer();
     simulator();
-    int count = 0;
-    for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
-        cout << "Assertion: " << ++count << endl;
-        for (auto itt = it->APList.begin(); itt != it->APList.end(); ++itt) {
-            cout << itt->state->layer << endl;
-        }
-    }
-    for (auto it = varMap.begin(); it != varMap.end(); ++it) {
-        delete it->second;
-    }
+    // printActivatedPoint(1);
+
     delete state;
     return EXIT_SUCCESS;
 }
@@ -70,7 +60,7 @@ void preProcessor()
 
     iterativelyEvalStateLayer();
     // printStateLayer(true);
-     FSM.printStateLayer();
+    FSM.printStateLayer();
 }
 
 void initializer()
@@ -93,9 +83,8 @@ void simulator()
 
 void staticFindActivatedPoint(Assertion& asrt)
 {
-    std::pair< bool, unsigned int > io = find(asrt.trigger.target);
-    bool triggerFlag = io.first;
-    unsigned int index = io.second;
+    bool triggerFlag = asrt.trigger.target == Assertion::TargetType::OUT ? true : false;
+    unsigned int index = asrt.trigger.index;
     cout << "Activated target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
          << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
     if (triggerFlag)
@@ -154,14 +143,14 @@ void iterativelyEvalStateLayer()
     while (queue.size()) {
         FSM[queue.front()]->traversed = true;
         for (auto it = FSM[queue.front()]->transitions.begin(); it != FSM[queue.front()]->transitions.end(); ++it) {
-            if ( (*it)->nState->label == 5 ) count++;
+            if ((*it)->nState->label == 5)
+                count++;
             if (layerTable[queue.front()] + 1 < layerTable[(*it)->nState->label] && (*it)->nState->label != queue.back()) {
                 layerTable[(*it)->nState->label] = layerTable[queue.front()] + 1;
                 (*it)->nState->layer = layerTable[queue.front()] + 1;
-                if (rlayerTable.find(layerTable[queue.front()] + 1) != rlayerTable.end()){
+                if (rlayerTable.find(layerTable[queue.front()] + 1) != rlayerTable.end()) {
                     rlayerTable[layerTable[queue.front()] + 1].push_back((*it)->nState->label);
-                }
-                else {
+                } else {
                     std::list< int > stateList;
                     stateList.push_back((*it)->nState->label);
                     rlayerTable[layerTable[queue.front()] + 1] = stateList;
@@ -177,9 +166,8 @@ void iterativelyEvalStateLayer()
 void fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
 
-    std::pair< bool, unsigned int > io = find(asrt.trigger.target);
-    bool triggerFlag = io.first;
-    unsigned int index = io.second;
+    bool triggerFlag = asrt.trigger.target == Assertion::TargetType::OUT ? true : false;
+    unsigned int index = asrt.trigger.index;
     for (auto APit = asrt.APList.begin(); APit != asrt.APList.end(); ++APit) {
         std::list< int > queue;
         queue.push_back(APit->state->label);
@@ -191,19 +179,6 @@ void fromActivatedPoint2AssertionFailed(Assertion& asrt)
     }
 }
 
-std::pair< bool, unsigned int > find(unsigned short* target)
-{
-    std::pair< bool, unsigned int > res;
-    if (target >= &(*varMap["out"])[0]) {
-        res.first = true;
-        res.second = (target - &(*varMap["out"])[0]) * 2 / sizeof(unsigned short);
-    } else {
-        res.first = false;
-        res.second = (target - &(*varMap["in"])[0]) * 2 / sizeof(unsigned short);
-    }
-    return res;
-}
-
 void printInputSequence()
 {
     cout << "Result: \n";
@@ -211,16 +186,7 @@ void printInputSequence()
         cout << *it << endl;
 }
 
-void printOutputSequence()
-{
-    cout << "Current output sequence: ";
-    for (unsigned int i = 0; i < varMap["out"]->size(); ++i) {
-        cout << (*varMap["out"])[i];
-    }
-    cout << endl;
-}
-
-void printStateLayer(int mode)
+void printActivatedPoint(int mode)
 {
     if (mode) {
         int count = 0;
@@ -235,5 +201,17 @@ void printStateLayer(int mode)
                 cout << *stateIt << ", ";
             cout << endl;
         }
+    }
+    cout << endl
+         << endl;
+}
+
+void printStateLayer()
+{
+    for (auto it = rlayerTable.begin(); it != rlayerTable.end(); ++it) {
+        cout << "Layer" << it->first << ": ";
+        for (auto stateIt = it->second.begin(); stateIt != it->second.end(); ++stateIt)
+            cout << *stateIt << ", ";
+        cout << endl;
     }
 }

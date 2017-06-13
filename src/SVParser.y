@@ -19,7 +19,6 @@ using std::endl;
 
 // Variable
 FiniteStateMachine FSM;
-std::map<std::string, Pattern* > varMap;
 std::vector<std::string*> nameList;
 std::map<std::string, unsigned int> paraTable;
 
@@ -34,7 +33,8 @@ int nowState = -1;
   SVParser::Range* range;
   SVParser::Pattern* pattern;
   unsigned int integer;
-  SVParser::SignalChange sig_ch;
+  SVParser::Assertion::SignalChange sig_ch;
+  SVParser::Assertion::SignalEdge signal_edge;
 }
 
 %token k_MODULE "module"
@@ -67,7 +67,7 @@ int nowState = -1;
 %token <string> IDENTIFIER
 %token <pattern> BIT_LABEL
 
-%type <integer> signal_change_identifier
+%type <signal_edge> signal_change_identifier
 %type <string> assertion_identifier
 %type <string> port_identifier
 %type <string> parameter_identifier
@@ -108,21 +108,7 @@ module_item
 
 port_declaration
         : port_type port_identifier_list
-        {
-            for (auto it = nameList.begin(); it != nameList.end(); ++it) {
-                if (varMap.find(**it) == varMap.end()) {
-                    varMap[**it] = new Pattern(1);
-                }
-            }
-        }
         | port_type range port_identifier_list
-        {
-            for (auto it = nameList.begin(); it != nameList.end(); ++it) {
-                if (varMap.find(**it) == varMap.end()) {
-                    varMap[**it] = new Pattern($2->length());
-                }
-            }
-        }
         ;
 
 port_type
@@ -268,10 +254,10 @@ property_block
         ;
 
 signal_change
-        : signal_change_identifier '(' port_identifier range ')'
+        : signal_change_identifier '(' port_identifier[name] range ')'
         {
             $$.change = $1;
-            $$.target = &(*varMap[*$3])[$4->first];
+            $$.target = (*$name != "in") ? Assertion::TargetType::OUT : Assertion::TargetType::IN;
         }
         ;
 
@@ -299,8 +285,8 @@ edge_identifier
         ;
 
 signal_change_identifier
-        : "$rose" { $$ = 1; }
-        | "$fell" { $$ = 0; }
+        : "$rose" { $$ = Assertion::SignalEdge::ROSE; }
+        | "$fell" { $$ = Assertion::SignalEdge::FELL; }
         ;
 
 assertion_identifier

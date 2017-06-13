@@ -7,6 +7,7 @@
 namespace SVParser {
 class FiniteStateMachine : private std::map< int, State* > {
     typedef std::map< int, State* > _Base;
+
 public:
     using _Base::operator[];
     using _Base::_Base;

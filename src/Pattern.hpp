@@ -12,6 +12,7 @@ class Pattern : private std::vector< unsigned short > {
     typedef std::vector< unsigned short > _Base;
 
 public:
+    static const unsigned short DONT_CARE = 2;
     friend std::ostream& operator<<(std::ostream& os, const Pattern& pattern);
     using _Base::size;
     using _Base::operator[];
