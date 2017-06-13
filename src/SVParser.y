@@ -33,32 +33,32 @@ int nowState = -1;
   SVParser::Range* range;
   SVParser::Pattern* pattern;
   unsigned int integer;
-  SVParser::Assertion::SignalChange sig_ch;
-  SVParser::Assertion::SignalEdge signal_edge;
+  SVParser::SignalChange sig_ch;
+  SVParser::SignalEdge signal_edge;
 }
 
-%token k_MODULE "module"
-%token k_ENDMODULE "endmodule"
-%token k_INPUT "input"
-%token k_OUTPUT "output"
-%token k_REG "reg"
-%token k_PARAMETER "parameter"
-%token k_BEGIN "begin"
-%token k_END "end"
-%token k_POSEDGE "posedge"
-%token k_NEGEDGE "negedge"
-%token k_ALWAYS "always"
-%token k_OR "or"
-%token k_IF "if"
-%token k_ELSE "else"
-%token k_CASE "case"
-%token k_CASEX "casex"
-%token k_ENDCASE "endcase"
-%token k_ASSERT "assert"
-%token k_PROPERTY "property"
-%token k_ROSE "$rose"
-%token k_FELL "$fell"
-%token k_DISPLAY "$display"
+%token k_MODULE                 "module"
+%token k_ENDMODULE              "endmodule"
+%token k_INPUT                  "input"
+%token k_OUTPUT                 "output"
+%token k_REG                    "reg"
+%token k_PARAMETER              "parameter"
+%token k_BEGIN                  "begin"
+%token k_END                    "end"
+%token k_POSEDGE                "posedge"
+%token k_NEGEDGE                "negedge"
+%token k_ALWAYS                 "always"
+%token k_OR                     "or"
+%token k_IF                     "if"
+%token k_ELSE                   "else"
+%token k_CASE                   "case"
+%token k_CASEX                  "casex"
+%token k_ENDCASE                "endcase"
+%token k_ASSERT                 "assert"
+%token k_PROPERTY               "property"
+%token k_ROSE                   "$rose"
+%token k_FELL                   "$fell"
+%token k_DISPLAY                "$display"
 
 
 %token STRING
@@ -257,7 +257,7 @@ signal_change
         : signal_change_identifier '(' port_identifier[name] range ')'
         {
             $$.change = $1;
-            $$.target = (*$name != "in") ? Assertion::TargetType::OUT : Assertion::TargetType::IN;
+            $$.target = (*$name != "in") ? TargetType::OUT : TargetType::IN;
         }
         ;
 
@@ -285,8 +285,8 @@ edge_identifier
         ;
 
 signal_change_identifier
-        : "$rose" { $$ = Assertion::SignalEdge::ROSE; }
-        | "$fell" { $$ = Assertion::SignalEdge::FELL; }
+        : "$rose" { $$ = SignalEdge::ROSE; }
+        | "$fell" { $$ = SignalEdge::FELL; }
         ;
 
 assertion_identifier

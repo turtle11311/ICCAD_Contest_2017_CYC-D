@@ -9,10 +9,10 @@ TARGET = sequence_generator
 
 all: $(TARGET)
 
-%.o: %.cpp
+%.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
-$(TARGET): main.o SVParser.tab.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o
+$(TARGET): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 SVParser.lex.cpp: SVParser.l SVParser.y

@@ -83,7 +83,7 @@ void simulator()
 
 void staticFindActivatedPoint(Assertion& asrt)
 {
-    bool triggerFlag = asrt.trigger.target == Assertion::TargetType::OUT ? true : false;
+    bool triggerFlag = asrt.trigger.target == TargetType::OUT ? true : false;
     unsigned int index = asrt.trigger.index;
     cout << "Activated target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
          << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
@@ -166,7 +166,7 @@ void iterativelyEvalStateLayer()
 void fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
 
-    bool triggerFlag = asrt.trigger.target == Assertion::TargetType::OUT ? true : false;
+    bool triggerFlag = asrt.trigger.target == TargetType::OUT ? true : false;
     unsigned int index = asrt.trigger.index;
     for (auto APit = asrt.APList.begin(); APit != asrt.APList.end(); ++APit) {
         std::list< int > queue;
