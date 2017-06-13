@@ -11,13 +11,13 @@ State::From::From(State* state, Transition* transition)
 
 State::State(int label)
     : label(label)
-    ,traversed(false)
+    , traversed(false)
 {
 }
 
 State::~State()
 {
-    std::for_each(transitions.begin(), transitions.end(), std::default_delete<Transition>());
+    std::for_each(transitions.begin(), transitions.end(), std::default_delete< Transition >());
 }
 
 Transition::Transition() {}

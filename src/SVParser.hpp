@@ -1,16 +1,16 @@
 #pragma once
 #include "FiniteStateMachine.hpp"
 #include "Pattern.hpp"
-#include <cstdlib>
-#include <utility>
 #include "State.hpp"
+#include <cstdlib>
 #include <list>
+#include <utility>
 using std::endl;
 using std::cout;
 
 namespace SVParser {
 
-struct ActivatedPoint{
+struct ActivatedPoint {
     State* state;
     Pattern pattern1, pattern2;
     Transition *transition1, *transition2;
@@ -42,24 +42,23 @@ struct Assertion {
     SignalChange trigger;
     SignalChange event;
     Range time;
-    std::list<ActivatedPoint> APList;
-    void sortActivatedPointByLayer(){
-        for ( auto it1 = APList.begin() ; it1 != APList.end(); ++it1 ){
-            for ( auto it2 = APList.begin() ; it2 != APList.end() ; ++it2 ){
-                if ( it2->state->layer < it1->state->layer ){
-
-                }
-            }
-        }
+    std::list< ActivatedPoint > APList;
+    void sortActivatedPointByLayer()
+    {
+        APList.sort([](const ActivatedPoint& lhs, const ActivatedPoint& rhs) {
+            return lhs.state->layer < rhs.state->layer;
+        });
     }
-    void printActivatedPoint(){
-        cout <<APList.size() << endl;
+    void printActivatedPoint()
+    {
+        cout << APList.size() << endl;
         for (auto it = APList.begin(); it != APList.end(); ++it) {
             cout << "(S" << it->state->label << ") -> " << it->pattern1
-            << " | out: " << it->transition1->out << " => (S" << it->transition1->nState->label
-            << ") -> " << it->pattern2 << " | out: " << it->transition2->out << endl;
+                 << " | out: " << it->transition1->out << " => (S" << it->transition1->nState->label
+                 << ") -> " << it->pattern2 << " | out: " << it->transition2->out << endl;
         }
-        cout << endl << endl;
+        cout << endl
+             << endl;
     }
 };
 }

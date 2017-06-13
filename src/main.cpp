@@ -1,8 +1,8 @@
 #include "SVParser.hpp"
+#include <climits>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
-#include <climits>
 #include <list>
 #include <map>
 #include <string>
@@ -29,8 +29,8 @@ void preProcessor();
 void initializer();
 void simulator();
 void staticFindActivatedPoint(Assertion&);
-void staticFindOutputSignalActivatedPoint(bool, unsigned int, std::list<ActivatedPoint>&);
-void staticFindInputSignalActivatedPoint(bool, unsigned int,std::list<ActivatedPoint>&);
+void staticFindOutputSignalActivatedPoint(bool, unsigned int, std::list< ActivatedPoint >&);
+void staticFindInputSignalActivatedPoint(bool, unsigned int, std::list< ActivatedPoint >&);
 void iterativelyEvalStateLayer();
 void fromActivatedPoint2AssertionFailed();
 std::pair< bool, unsigned int > find(unsigned short*);
@@ -46,6 +46,9 @@ int main(int argc, const char* argv[])
     int count = 0;
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
         cout << "Assertion: " << ++count << endl;
+        for (auto itt = it->APList.begin(); itt != it->APList.end(); ++itt) {
+            cout << itt->state->layer << endl;
+        }
     }
     for (auto it = varMap.begin(); it != varMap.end(); ++it) {
         delete it->second;
@@ -95,12 +98,12 @@ void staticFindActivatedPoint(Assertion& asrt)
     cout << "Activated target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
          << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
     if (triggerFlag)
-        staticFindOutputSignalActivatedPoint(triggerFlag, index,asrt.APList);
+        staticFindOutputSignalActivatedPoint(triggerFlag, index, asrt.APList);
     else
-        staticFindInputSignalActivatedPoint(triggerFlag, index,asrt.APList);
+        staticFindInputSignalActivatedPoint(triggerFlag, index, asrt.APList);
 }
 
-void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index,std::list<ActivatedPoint>& APList)
+void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index, std::list< ActivatedPoint >& APList)
 {
     cout << "output-signal-activated assertion." << endl;
     for (int i = 0; i < FSM.size(); ++i) {
@@ -108,7 +111,7 @@ void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index,s
             if ((*it1)->out[index] == !triggerFlag) {
                 for (auto it2 = FSM[(*it1)->nState->label]->transitions.begin(); it2 != FSM[(*it1)->nState->label]->transitions.end(); ++it2) {
                     if ((*it2)->out[index] == triggerFlag) {
-                        APList.push_back(ActivatedPoint({ FSM[i], (*it1)->defaultPattern(),(*it2)->defaultPattern(), *it1, *it2 }));
+                        APList.push_back(ActivatedPoint({ FSM[i], (*it1)->defaultPattern(), (*it2)->defaultPattern(), *it1, *it2 }));
                     }
                 }
             }
@@ -116,7 +119,7 @@ void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index,s
     }
 }
 
-void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index,std::list<ActivatedPoint>& APList)
+void staticFindInputSignalActivatedPoint(bool triggerFlag, unsigned int index, std::list< ActivatedPoint >& APList)
 {
     cout << "input-signal-activated assertion." << endl;
     for (int i = 0; i < FSM.size(); ++i) {
@@ -151,11 +154,10 @@ void iterativelyEvalStateLayer()
         for (auto it = FSM[queue.front()]->transitions.begin(); it != FSM[queue.front()]->transitions.end(); ++it) {
             if (layerTable[queue.front()] + 1 < layerTable[(*it)->nState->label] && (*it)->nState->label != queue.back()) {
                 layerTable[(*it)->nState->label] = layerTable[queue.front()] + 1;
-                if (rlayerTable.find(layerTable[queue.front()] + 1) != rlayerTable.end()){
+                if (rlayerTable.find(layerTable[queue.front()] + 1) != rlayerTable.end()) {
                     rlayerTable[layerTable[queue.front()] + 1].push_back((*it)->nState->label);
                     (*it)->nState->layer = layerTable[queue.front()] + 1;
-                }
-                else {
+                } else {
                     std::list< int > stateList;
                     stateList.push_back((*it)->nState->label);
                     rlayerTable[layerTable[queue.front()] + 1] = stateList;
@@ -167,12 +169,13 @@ void iterativelyEvalStateLayer()
     }
 }
 
-void fromActivatedPoint2AssertionFailed( Assertion& asrt ){
+void fromActivatedPoint2AssertionFailed(Assertion& asrt)
+{
 
     std::pair< bool, unsigned int > io = find(asrt.trigger.target);
     bool triggerFlag = io.first;
     unsigned int index = io.second;
-    for ( auto APit = asrt.APList.begin() ; APit != asrt.APList.end() ; ++APit ){
+    for (auto APit = asrt.APList.begin(); APit != asrt.APList.end(); ++APit) {
         std::list< int > queue;
         queue.push_back(APit->state->label);
         while (queue.size()) {
@@ -214,17 +217,17 @@ void printOutputSequence()
 
 void printStateLayer(int mode)
 {
-    if ( mode ){
+    if (mode) {
         int count = 0;
         for (auto it = layerTable.begin(); it != layerTable.end(); ++it) {
-            cout << "S" << count << ": " << *it << (!FSM[count]->traversed?"X":"") << endl;
+            cout << "S" << count << ": " << *it << (!FSM[count]->traversed ? "X" : "") << endl;
             count++;
         }
     } else {
         for (auto it = rlayerTable.begin(); it != rlayerTable.end(); ++it) {
             cout << "Layer" << it->first << ": ";
             for (auto stateIt = it->second.begin(); stateIt != it->second.end(); ++stateIt)
-            cout << *stateIt << ", ";
+                cout << *stateIt << ", ";
             cout << endl;
         }
     }
