@@ -2,6 +2,7 @@
 #include "Pattern.hpp"
 #include <utility>
 #include <vector>
+#include <climits>
 
 namespace SVParser {
 

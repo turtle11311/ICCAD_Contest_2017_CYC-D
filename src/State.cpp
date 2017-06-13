@@ -1,6 +1,7 @@
 #include "State.hpp"
 #include <algorithm>
 #include <memory>
+#include <climits>
 
 namespace SVParser {
 State::From::From(State* state, Transition* transition)
@@ -11,6 +12,7 @@ State::From::From(State* state, Transition* transition)
 
 State::State(int label)
     : label(label)
+    , layer(INT_MAX)
     , traversed(false)
 {
 }
