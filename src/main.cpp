@@ -77,17 +77,19 @@ void simulator()
         cout << "Assertion: " << ++count << endl;
         initializer();
         staticFindActivatedPoint(*it);
+        it->sortActivatedPointByLayer();
         it->printActivatedPoint();
     }
 }
 
 void staticFindActivatedPoint(Assertion& asrt)
 {
-    bool triggerFlag = asrt.trigger.target == TargetType::OUT ? true : false;
+    bool signalFlag = asrt.trigger.target == TargetType::OUT ? true : false;
+    bool triggerFlag = asrt.trigger.change == SignalEdge::ROSE ? true : false;
     unsigned int index = asrt.trigger.index;
-    cout << "Activated target: " << ((triggerFlag) ? "out[" : "in[") << index << "]"
+    cout << "Activated target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
          << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
-    if (triggerFlag)
+    if (signalFlag)
         staticFindOutputSignalActivatedPoint(triggerFlag, index, asrt.APList);
     else
         staticFindInputSignalActivatedPoint(triggerFlag, index, asrt.APList);
@@ -101,7 +103,7 @@ void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index, 
             if ((*it1)->out[index] == !triggerFlag) {
                 for (auto it2 = FSM[(*it1)->nState->label]->transitions.begin(); it2 != FSM[(*it1)->nState->label]->transitions.end(); ++it2) {
                     if ((*it2)->out[index] == triggerFlag) {
-                        APList.push_back(ActivatedPoint({ FSM[i], (*it1)->defaultPattern(), (*it2)->defaultPattern(), *it1, *it2 }));
+                        APList.push_back(ActivatedPoint({ FSM[i], (*it1)->pattern, (*it2)->pattern, *it1, *it2 }));
                     }
                 }
             }
