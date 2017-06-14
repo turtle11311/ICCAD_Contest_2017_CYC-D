@@ -254,10 +254,11 @@ property_block
         ;
 
 signal_change
-        : signal_change_identifier '(' port_identifier[name] range ')'
+        : signal_change_identifier '(' port_identifier[name] range[index] ')'
         {
             $$.change = $1;
             $$.target = (*$name != "in") ? TargetType::OUT : TargetType::IN;
+            $$.index = $index->first;
         }
         ;
 
