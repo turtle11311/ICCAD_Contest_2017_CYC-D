@@ -1,25 +1,13 @@
-MAKE = make
 CXX = g++
 CXXFLAGS += -Isrc/ --std=c++0x -g
 LEX = flex
 YACC = bison
 VPATH = src/
 TARGET = sequence_generator
-CASE ?= tb1
-CASEDIR = test_cases/$(CASE)
 
-.PHONY: all clean test
+.PHONY: all clean
 
 all: $(TARGET)
-
-test: all
-	$(MAKE) --makefile=../../Makefile -C $(CASEDIR) simulator
-
-simulator: simv input_sequence
-	./simv
-
-simv: fsm.v test.v
-	vcs -sverilog fsm.v test.v
 
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
