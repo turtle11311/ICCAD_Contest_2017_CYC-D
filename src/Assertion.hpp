@@ -25,6 +25,7 @@ struct ActivatedPoint {
     State* state;
     Pattern pattern1, pattern2;
     Transition *transition1, *transition2;
+    static bool cmpWithLayer(const ActivatedPoint& lhs, const ActivatedPoint& rhs);
 };
 
 struct Assertion {

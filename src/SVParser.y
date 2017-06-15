@@ -217,10 +217,10 @@ casex_list
         ;
 
 casex
-        : BIT_LABEL[pattern] ':' "begin" port_identifier '=' parameter[nState] ';'
-          port_identifier '=' bit_pattern[out] ';' "end"
+        : BIT_LABEL ':' "begin" port_identifier '=' parameter ';'
+          port_identifier '=' bit_pattern ';' "end"
         {
-            FSM.insesrtTransition(nowState, std::move(*$pattern), $nState, std::move(*$out));
+            FSM.insesrtTransition(nowState, std::move(*$1), $6, std::move(*$10));
         }
         ;
 
@@ -254,11 +254,11 @@ property_block
         ;
 
 signal_change
-        : signal_change_identifier '(' port_identifier[name] range[index] ')'
+        : signal_change_identifier '(' port_identifier range ')'
         {
             $$.change = $1;
-            $$.target = (*$name != "in") ? TargetType::OUT : TargetType::IN;
-            $$.index = $index->first;
+            $$.target = (*$3 != "in") ? TargetType::OUT : TargetType::IN;
+            $$.index = $4->first;
         }
         ;
 
