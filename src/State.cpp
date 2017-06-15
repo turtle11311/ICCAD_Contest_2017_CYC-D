@@ -1,7 +1,7 @@
 #include "State.hpp"
 #include <algorithm>
-#include <memory>
 #include <climits>
+#include <memory>
 
 namespace SVParser {
 State::From::From(State* state, Transition* transition)
