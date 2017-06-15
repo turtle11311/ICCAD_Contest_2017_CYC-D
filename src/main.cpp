@@ -1,7 +1,10 @@
 #include "SVParser.hpp"
 #include <climits>
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
+#include <getopt.h>
 #include <iostream>
 #include <list>
 #include <map>
@@ -13,9 +16,11 @@ using std::cout;
 using std::endl;
 
 extern int yyparse(void);
-
+extern FILE* yyin;
 extern std::list< Assertion > asrtList;
 extern FiniteStateMachine FSM;
+
+std::ofstream output;
 
 int ptnSize;
 int* state = new int;
@@ -23,6 +28,8 @@ std::vector< Pattern > inputSequence;
 std::vector< unsigned int > rstRecord;
 std::vector< int > layerTable;
 std::map< int, std::list< int > > rlayerTable;
+
+void parseArgAndInitial(int argc, char* argv[]);
 
 void preProcessor();
 void initializer();
@@ -35,9 +42,15 @@ void fromActivatedPoint2AssertionFailed();
 void printInputSequence();
 void printActivatedPoint(int);
 void printStateLayer();
-int main(int argc, const char* argv[])
+
+int main(int argc, char* argv[])
 {
+    parseArgAndInitial(argc, argv);
     yyparse();
+
+    // speed up c++ STL I/O
+    std::ios_base::sync_with_stdio(false);
+
     preProcessor();
     printStateLayer();
     simulator();
@@ -45,6 +58,28 @@ int main(int argc, const char* argv[])
 
     delete state;
     return EXIT_SUCCESS;
+}
+
+void parseArgAndInitial(int argc, char* argv[])
+{
+    if (argc < 4) {
+        fprintf(stderr, "Usage: %s -i input_file -o output_file\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    char opt;
+    while ((opt = getopt(argc, argv, "i:o:")) != EOF) {
+        switch (opt) {
+        case 'i':
+            yyin = fopen(optarg, "r");
+            break;
+        case 'o':
+            output.open(optarg, std::ios::out);
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 void preProcessor()
@@ -61,6 +96,7 @@ void preProcessor()
     iterativelyEvalStateLayer();
     // printStateLayer(true);
     FSM.printStateLayer();
+    output.close();
 }
 
 void initializer()
