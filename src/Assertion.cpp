@@ -6,11 +6,14 @@ using std::endl;
 
 namespace SVParser {
 
+bool ActivatedPoint::cmpWithLayer(const ActivatedPoint& lhs, const ActivatedPoint& rhs)
+{
+    return lhs.state->layer < rhs.state->layer;
+}
+
 void Assertion::sortActivatedPointByLayer()
 {
-    APList.sort([](const ActivatedPoint& lhs, const ActivatedPoint& rhs) {
-        return lhs.state->layer < rhs.state->layer;
-    });
+    APList.sort(&ActivatedPoint::cmpWithLayer);
 }
 
 void Assertion::printActivatedPoint()

@@ -34,6 +34,7 @@ struct ActivatedPoint {
              << " | out: " << transition1->out << " => (S" << transition1->nState->label
              << ") -> " << pattern2 << " | out: " << transition2->out << endl;
     }
+    static bool cmpWithLayer(const ActivatedPoint& lhs, const ActivatedPoint& rhs);
 };
 
 struct Assertion {

@@ -10,7 +10,6 @@ class FiniteStateMachine : private std::map< int, State* > {
 
 public:
     using _Base::operator[];
-    using _Base::_Base;
     using _Base::size;
     using _Base::begin;
     using _Base::end;
