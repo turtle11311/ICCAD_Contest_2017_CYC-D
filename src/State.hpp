@@ -1,8 +1,8 @@
 #pragma once
 #include "Pattern.hpp"
+#include <climits>
 #include <utility>
 #include <vector>
-#include <climits>
 
 namespace SVParser {
 
