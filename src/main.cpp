@@ -23,6 +23,8 @@ std::vector< Pattern > inputSequence;
 std::vector< unsigned int > rstRecord;
 std::vector< int > layerTable;
 std::map< int, std::list< int > > rlayerTable;
+std::list< ActivatedPoint > path;
+bool asrtFailedFlag = false;
 
 void preProcessor();
 void initializer();
@@ -31,18 +33,19 @@ void staticFindActivatedPoint(Assertion&);
 void staticFindOutputSignalActivatedPoint(bool, unsigned int, std::list< ActivatedPoint >&);
 void staticFindInputSignalActivatedPoint(bool, unsigned int, std::list< ActivatedPoint >&);
 void iterativelyEvalStateLayer();
-void fromActivatedPoint2AssertionFailed();
+void fromActivatedPoint2AssertionFailed(Assertion&);
+void findOutputSignalTermiateStartPoint(bool, unsigned int, ActivatedPoint&, Range&);
+void findInputSignalTermiateStartPoint(bool, unsigned int, ActivatedPoint&, Range&);
+void recursiveTraverseOS(std::list< ActivatedPoint >, bool, unsigned int, unsigned int);
 void printInputSequence();
 void printActivatedPoint(int);
 void printStateLayer();
+void printPath();
 int main(int argc, const char* argv[])
 {
     yyparse();
     preProcessor();
-    printStateLayer();
     simulator();
-    // printActivatedPoint(1);
-
     delete state;
     return EXIT_SUCCESS;
 }
@@ -59,8 +62,13 @@ void preProcessor()
     rlayerTable[0] = std::move(std::list< int >(1, 0));
 
     iterativelyEvalStateLayer();
-    // printStateLayer(true);
-    FSM.printStateLayer();
+    // FSM.printStateLayer();
+
+    for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
+        staticFindActivatedPoint(*it);
+        it->sortActivatedPointByLayer();
+        //it->printActivatedPoint();
+    }
 }
 
 void initializer()
@@ -72,13 +80,15 @@ void initializer()
 
 void simulator()
 {
+    cout << "Simulator!\n";
     int count = 0;
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
         cout << "Assertion: " << ++count << endl;
-        initializer();
-        staticFindActivatedPoint(*it);
-        it->sortActivatedPointByLayer();
-        it->printActivatedPoint();
+        path.clear();
+        asrtFailedFlag = false;
+        fromActivatedPoint2AssertionFailed(*it);
+        cout << endl
+             << endl;
     }
 }
 
@@ -87,8 +97,8 @@ void staticFindActivatedPoint(Assertion& asrt)
     bool signalFlag = asrt.trigger.target == TargetType::OUT ? true : false;
     bool triggerFlag = asrt.trigger.change == SignalEdge::ROSE ? true : false;
     unsigned int index = asrt.trigger.index;
-    cout << "Activated target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
-         << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
+    // cout << "Activated target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
+    //      << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
     if (signalFlag)
         staticFindOutputSignalActivatedPoint(triggerFlag, index, asrt.APList);
     else
@@ -162,23 +172,100 @@ void iterativelyEvalStateLayer()
         }
         queue.pop_front();
     }
-    cout << count << "!!!!!!!!!!!!!!!!!!\n";
 }
 
 void fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
+    bool signalFlag = asrt.event.target == TargetType::OUT ? true : false;
+    bool triggerFlag = asrt.event.change == SignalEdge::ROSE ? true : false;
+    unsigned int index = asrt.event.index;
+    cout << "Terminate target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
+         << " is " << (triggerFlag ? "rose" : "fell")
+         << " in range[" << asrt.time.first << ":" << asrt.time.second << "]"
+         << "." << endl;
+    if (signalFlag) {
+        for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it) {
+            findOutputSignalTermiateStartPoint(triggerFlag, index, *it, asrt.time);
+            if (path.size() > 1)
+                recursiveTraverseOS(std::list< ActivatedPoint >(1, path.back()), triggerFlag, index, asrt.time.length());
+            if (asrtFailedFlag)
+                break;
+        }
+    } else {
+        for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it)
+            findInputSignalTermiateStartPoint(triggerFlag, index, *it, asrt.time);
+    }
+}
 
-    bool triggerFlag = asrt.trigger.target == TargetType::OUT ? true : false;
-    unsigned int index = asrt.trigger.index;
-    for (auto APit = asrt.APList.begin(); APit != asrt.APList.end(); ++APit) {
-        std::list< int > queue;
-        queue.push_back(APit->state->label);
-        while (queue.size()) {
-            for (auto it = FSM[queue.front()]->transitions.begin(); it != FSM[queue.front()]->transitions.end(); ++it) {
-            }
-            queue.pop_front();
+void findOutputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
+{
+    path = std::list< ActivatedPoint >(1, ap);
+    unsigned int start = range.first - 1;
+    bool selfCycle = false;
+    Transition* SCT; // self cycle Transition
+    State* nState = ap.transition2->nState;
+    for (auto it = nState->transitions.begin(); it != nState->transitions.end(); ++it) {
+        if ((*it)->nState == nState) {
+            selfCycle = true;
+            SCT = *it;
+            break;
         }
     }
+    if (selfCycle) {
+        for (int i = 0; i < start; ++i)
+            path.push_back(ActivatedPoint({ nState, SCT->pattern, SCT->pattern, SCT, SCT }));
+    } else {
+        for (int i = 0; i < start; ++i) {
+            path.push_back(
+                ActivatedPoint({ nState,
+                    ap.pattern2,
+                    nState->transitions.front()->pattern,
+                    ap.transition2,
+                    nState->transitions.front() }));
+            nState = nState->transitions.front()->nState;
+        }
+    }
+}
+
+void recursiveTraverseOS(std::list< ActivatedPoint > stack, bool triggerFlag, unsigned int index, unsigned int cycle)
+{
+    if (asrtFailedFlag)
+        return;
+    if (!cycle) {
+        asrtFailedFlag = true;
+        stack.pop_front();
+        for (auto it = stack.begin(); it != stack.end(); ++it) {
+            path.push_back(*it);
+        }
+        cout << "find!\n";
+        printPath();
+        return;
+    }
+    Pattern out = stack.back().transition2->out;
+    State* nState = stack.back().transition2->nState;
+    for (auto it = nState->transitions.begin(); it != nState->transitions.end(); ++it) {
+        if (out[index] == !triggerFlag && (*it)->out[index] == !triggerFlag) {
+            stack.push_back(
+                ActivatedPoint({ nState,
+                    stack.back().pattern2,
+                    (*it)->pattern,
+                    stack.back().transition2,
+                    *it }));
+            recursiveTraverseOS(stack, triggerFlag, index, cycle - 1);
+        } else if (out[index] == triggerFlag) {
+            stack.push_back(
+                ActivatedPoint({ nState,
+                    stack.back().pattern2,
+                    (*it)->pattern,
+                    stack.back().transition2,
+                    *it }));
+            recursiveTraverseOS(stack, triggerFlag, index, cycle - 1);
+        }
+    }
+}
+
+void findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
+{
 }
 
 void printInputSequence()
@@ -215,5 +302,16 @@ void printStateLayer()
         for (auto stateIt = it->second.begin(); stateIt != it->second.end(); ++stateIt)
             cout << *stateIt << ", ";
         cout << endl;
+    }
+}
+
+void printPath()
+{
+    cout << "Path: " << endl;
+    for (auto it = path.begin(); it != path.end(); ++it) {
+        cout << it->pattern1 << " -> S" << it->state->label << " -> " << it->transition1->out;
+        cout << " => ";
+        cout << it->pattern2 << " -> S" << it->transition1->nState->label << " -> " << it->transition2->out << endl;
+        cout << "|" << endl;
     }
 }
