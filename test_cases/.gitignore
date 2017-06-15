@@ -1,0 +1,5 @@
+# vcs generate files
+csrc/
+simv
+simv.daidir/
+ucli.key
