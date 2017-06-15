@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <map>
-
+#include <set>
 namespace SVParser {
 class FiniteStateMachine : private std::map< int, State* > {
     typedef std::map< int, State* > _Base;
@@ -19,9 +19,13 @@ public:
     State* getState(int state);
     void insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out);
     void printStateLayer();
+    void setIsolatedState(int state);
+    void resetTraversed();
+    bool isIsolated(int state);
     ~FiniteStateMachine();
 
 private:
     size_t PATTERNSIZE;
+    std::set< State* > isolatedStates;
 };
 }

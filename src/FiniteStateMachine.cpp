@@ -35,9 +35,27 @@ FiniteStateMachine::~FiniteStateMachine()
         delete it->second;
 }
 
-void FiniteStateMachine::printStateLayer(){
-    for (auto it = this->begin() ; it != this->end() ; ++it ){
+void FiniteStateMachine::printStateLayer()
+{
+    for (auto it = this->begin(); it != this->end(); ++it) {
         cout << "S" << it->second->label << ": " << it->second->layer << (!it->second->traversed ? "X" : "") << endl;
+    }
+}
+
+void FiniteStateMachine::setIsolatedState(int state)
+{
+    isolatedStates.insert((*this)[state]);
+}
+
+bool FiniteStateMachine::isIsolated(int state)
+{
+    return isolatedStates.end() == isolatedStates.find((*this)[state]);
+}
+
+void FiniteStateMachine::resetTraversed()
+{
+    for (int i = 0; i < this->size(); ++i) {
+        (*this)[i]->traversed = false;
     }
 }
 }

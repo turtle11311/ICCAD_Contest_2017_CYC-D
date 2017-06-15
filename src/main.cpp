@@ -37,6 +37,8 @@ void fromActivatedPoint2AssertionFailed(Assertion&);
 void findOutputSignalTermiateStartPoint(bool, unsigned int, ActivatedPoint&, Range&);
 void findInputSignalTermiateStartPoint(bool, unsigned int, ActivatedPoint&, Range&);
 void recursiveTraverseOS(std::list< ActivatedPoint >, bool, unsigned int, unsigned int);
+void usingDijkstraForNonWeightedGraph(ActivatedPoint& ap);
+std::list< ActivatedPoint > integerPath2APPathConverter(std::list< int >&, ActivatedPoint&);
 void printInputSequence();
 void printActivatedPoint(int);
 void printStateLayer();
@@ -62,8 +64,11 @@ void preProcessor()
     rlayerTable[0] = std::move(std::list< int >(1, 0));
 
     iterativelyEvalStateLayer();
+    for (auto it = FSM.begin(); it != FSM.end(); ++it) {
+        if (!it->second->traversed)
+            FSM.setIsolatedState(it->second->label);
+    }
     // FSM.printStateLayer();
-
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
         staticFindActivatedPoint(*it);
         it->sortActivatedPointByLayer();
@@ -109,6 +114,8 @@ void staticFindOutputSignalActivatedPoint(bool triggerFlag, unsigned int index, 
 {
     cout << "output-signal-activated assertion." << endl;
     for (int i = 0; i < FSM.size(); ++i) {
+        if (FSM.isIsolated(i))
+            continue;
         for (auto it1 = FSM[i]->transitions.begin(); it1 != FSM[i]->transitions.end(); ++it1) {
             if ((*it1)->out[index] == !triggerFlag) {
                 for (auto it2 = FSM[(*it1)->nState->label]->transitions.begin(); it2 != FSM[(*it1)->nState->label]->transitions.end(); ++it2) {
@@ -151,12 +158,9 @@ void iterativelyEvalStateLayer()
 {
     std::list< int > queue;
     queue.push_back(0);
-    int count = 0;
     while (queue.size()) {
         FSM[queue.front()]->traversed = true;
         for (auto it = FSM[queue.front()]->transitions.begin(); it != FSM[queue.front()]->transitions.end(); ++it) {
-            if ((*it)->nState->label == 5)
-                count++;
             if (layerTable[queue.front()] + 1 < layerTable[(*it)->nState->label] && (*it)->nState->label != queue.back()) {
                 layerTable[(*it)->nState->label] = layerTable[queue.front()] + 1;
                 (*it)->nState->layer = layerTable[queue.front()] + 1;
@@ -188,8 +192,16 @@ void fromActivatedPoint2AssertionFailed(Assertion& asrt)
             findOutputSignalTermiateStartPoint(triggerFlag, index, *it, asrt.time);
             if (path.size() > 1)
                 recursiveTraverseOS(std::list< ActivatedPoint >(1, path.back()), triggerFlag, index, asrt.time.length());
-            if (asrtFailedFlag)
+            if (asrtFailedFlag) {
+                cout << "Activated point: ";
+                path.front().printAP();
+                cout << endl
+                     << endl;
+
+                usingDijkstraForNonWeightedGraph(path.front());
+                printPath();
                 break;
+            }
         }
     } else {
         for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it)
@@ -237,8 +249,6 @@ void recursiveTraverseOS(std::list< ActivatedPoint > stack, bool triggerFlag, un
         for (auto it = stack.begin(); it != stack.end(); ++it) {
             path.push_back(*it);
         }
-        cout << "find!\n";
-        printPath();
         return;
     }
     Pattern out = stack.back().transition2->out;
@@ -266,6 +276,65 @@ void recursiveTraverseOS(std::list< ActivatedPoint > stack, bool triggerFlag, un
 
 void findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
 {
+}
+
+void usingDijkstraForNonWeightedGraph(ActivatedPoint& ap)
+{
+    FSM.resetTraversed();
+    State* goal = ap.state;
+    std::list< std::list< int > > queue;
+    queue.push_back(std::list< int >(1, 0));
+    while (queue.size()) {
+        State* cur = FSM[queue.back().front()];
+        for (auto it = cur->transitions.begin(); it != cur->transitions.end(); ++it) {
+            std::list< int > shortestPath = queue.front();
+            shortestPath.push_back((*it)->nState->label);
+            if (cur->traversed)
+                continue;
+            if ((*it)->nState == goal) {
+                std::list< ActivatedPoint > temp = integerPath2APPathConverter(shortestPath, ap);
+                for (auto tempIt = temp.rbegin(); tempIt != temp.rend(); ++tempIt) {
+                    path.push_front(*tempIt);
+                }
+                queue.clear();
+                return;
+            } else {
+                if ((*it)->nState == cur)
+                    cur->traversed = true;
+                queue.push_back(shortestPath);
+            }
+        }
+        queue.pop_front();
+    }
+}
+
+std::list< ActivatedPoint > integerPath2APPathConverter(std::list< int >& shortestPath, ActivatedPoint& ap)
+{
+    cout << shortestPath.size() << endl;
+    std::list< ActivatedPoint > temp;
+    auto it = shortestPath.begin();
+    ++it;
+    auto _it = shortestPath.begin();
+    for (auto from = FSM[*it]->fromList.begin(); from != FSM[*it]->fromList.end(); ++from) {
+        if (from->state == FSM[*_it]) {
+            temp.push_back(ActivatedPoint({ FSM[*_it], from->transition->pattern, from->transition->pattern, from->transition, from->transition }));
+            break;
+        }
+    }
+    ++_it, ++it;
+    for (; it != shortestPath.end(); ++it) {
+        for (auto from = FSM[*it]->fromList.begin(); from != FSM[*it]->fromList.end(); ++from) {
+            if (from->state == FSM[*_it]) {
+                temp.back().pattern2 = from->transition->pattern;
+                temp.back().transition2 = from->transition;
+                temp.push_back(ActivatedPoint({ FSM[*_it], from->transition->pattern, from->transition->pattern, from->transition, from->transition }));
+            }
+        }
+    }
+    temp.back().pattern2 = ap.pattern1;
+    temp.back().transition2 = ap.transition1;
+    cout << temp.size() << endl;
+    return temp;
 }
 
 void printInputSequence()
