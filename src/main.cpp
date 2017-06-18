@@ -15,10 +15,9 @@ using namespace SVParser;
 using std::cout;
 using std::endl;
 
-extern int yyparse(void);
+extern int yyparse(SVParser::FiniteStateMachine& FSM);
 extern FILE* yyin;
 extern std::list< Assertion > asrtList;
-extern FiniteStateMachine FSM;
 
 std::ofstream output;
 
@@ -54,13 +53,13 @@ void printPath();
 int main(int argc, char* argv[])
 {
     parseArgAndInitial(argc, argv);
-    yyparse();
+
+    FiniteStateMachine FSM;
+    yyparse(FSM);
 
     // speed up c++ STL I/O
     std::ios_base::sync_with_stdio(false);
 
-    preProcessor();
-    simulator();
     delete state;
     return EXIT_SUCCESS;
 }
@@ -86,7 +85,7 @@ void parseArgAndInitial(int argc, char* argv[])
         }
     }
 }
-
+/*
 void preProcessor()
 {
     // record pattern size
@@ -422,3 +421,4 @@ void printPath()
         cout << "|" << endl;
     }
 }
+*/

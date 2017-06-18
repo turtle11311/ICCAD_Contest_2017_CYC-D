@@ -4,9 +4,17 @@
 #include <cstdio>
 #include <map>
 #include <set>
+
+namespace SVParser {
+class FiniteStateMachine;
+}
+
+extern int yyparse(SVParser::FiniteStateMachine& FSM);
+
 namespace SVParser {
 class FiniteStateMachine : private std::map< int, State* > {
     typedef std::map< int, State* > _Base;
+    friend int(::yyparse)(FiniteStateMachine& FSM);
 
 public:
     using _Base::operator[];
@@ -16,7 +24,6 @@ public:
     FiniteStateMachine();
     inline size_t inputSize() { return PATTERNSIZE; }
     State* getState(int state);
-    void insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out);
     void printStateLayer();
     void setIsolatedState(int state);
     void resetTraversed();
@@ -24,6 +31,7 @@ public:
     ~FiniteStateMachine();
 
 private:
+    void insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out);
     size_t PATTERNSIZE;
     std::set< State* > isolatedStates;
 };

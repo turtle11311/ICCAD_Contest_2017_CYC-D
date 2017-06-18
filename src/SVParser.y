@@ -9,16 +9,17 @@
 extern int yylex(void);
 extern int yylineno;
 extern char* yytext;
-int yyerror(const char* text) {
-    fprintf(stderr, "%s is %s in line %d\n", text, yytext, yylineno);
-    return 1;
-}
+
 using namespace SVParser;
 using std::cout;
 using std::endl;
 
+int yyerror(SVParser::FiniteStateMachine& FSM, const char* text) {
+    fprintf(stderr, "%s is %s in line %d\n", text, yytext, yylineno);
+    return 1;
+}
+
 // Variable
-FiniteStateMachine FSM;
 std::vector<std::string*> nameList;
 std::map<std::string, unsigned int> paraTable;
 
@@ -27,6 +28,8 @@ std::list<Assertion> asrtList;
 
 int nowState = -1;
 %}
+
+%parse-param { SVParser::FiniteStateMachine& FSM }
 
 %union {
   std::string* string;
