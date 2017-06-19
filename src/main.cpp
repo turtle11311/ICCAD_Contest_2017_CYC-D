@@ -1,3 +1,4 @@
+#include "InputSequenceGenerator.hpp"
 #include "SVParser.hpp"
 #include <climits>
 #include <cstdio>
@@ -54,8 +55,8 @@ int main(int argc, char* argv[])
 {
     parseArgAndInitial(argc, argv);
 
-    FiniteStateMachine FSM;
-    yyparse(FSM);
+    InputSequenceGenerator generator;
+    yyparse(generator);
 
     // speed up c++ STL I/O
     std::ios_base::sync_with_stdio(false);

@@ -9,7 +9,6 @@ CASE ?= tb1
 CASEDIR = test_cases/$(CASE)
 
 .PHONY: all clean test
-
 all: $(TARGET)
 
 test: all
@@ -24,7 +23,7 @@ simv: fsm.v test.v
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
-$(TARGET): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o
+$(TARGET): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o InputSequenceGenerator.o
 	$(CXX) $(CXXFLAGS) $^ -static -o $@
 
 SVParser.lex.cpp: SVParser.l SVParser.y
