@@ -4,27 +4,31 @@ CXXFLAGS += -Isrc/ --std=c++0x -g
 LEX = flex
 YACC = bison
 VPATH = src/
-TARGET = sequence_generator
+BINARY = sequence_generator
 CASE ?= tb1
 CASEDIR = test_cases/$(CASE)
 
-.PHONY: all clean test
+.PHONY: all clean test simulation output
 
-all: $(TARGET)
+all: $(BINARY)
 
-test: all
-	$(MAKE) --makefile=../../Makefile -C $(CASEDIR) simulator
+test: $(BINARY) simulation
 
-simulator: simv input_sequence
+simulation: $(CASEDIR)/simv output
 	./simv
 
 simv: fsm.v test.v
 	vcs -sverilog fsm.v test.v
 
+output: $(CASEDIR)/input_sequence
+
+$(CASEDIR)/input_sequence: $(BINARY)
+	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
+
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
-$(TARGET): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o
+$(BINARY): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o
 	$(CXX) $(CXXFLAGS) $^ -static -o $@
 
 SVParser.lex.cpp: SVParser.l SVParser.y
@@ -34,4 +38,4 @@ SVParser.tab.cpp: SVParser.y SVParser.hpp
 	$(YACC) -d -o $@ $<
 
 clean:
-	$(RM) *.o *.lex.* $(TARGET) *.tab.*
+	$(RM) *.o *.lex.* $(BINARY) *.tab.*
