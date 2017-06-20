@@ -54,8 +54,8 @@ bool FiniteStateMachine::isIsolated(int state)
 
 void FiniteStateMachine::resetTraversed()
 {
-    for (int i = 0; i < this->size(); ++i) {
-        (*this)[i]->traversed = false;
+    for (auto& state : (*this)) {
+        state.second->traversed = false;
     }
 }
 }
