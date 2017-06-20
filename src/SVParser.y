@@ -23,9 +23,6 @@ int yyerror(SVParser::InputSequenceGenerator& FSM, const char* text) {
 std::vector<std::string*> nameList;
 std::map<std::string, unsigned int> paraTable;
 
-Assertion asrt;
-std::list<Assertion> asrtList;
-
 int nowState = -1;
 %}
 
@@ -249,10 +246,11 @@ assertion_property_statement
 property_block
         : '@' '(' event_expression ')' signal_change '|' '-' '>' '#' '#' range signal_change
         {
+            Assertion asrt; 
             asrt.trigger = $5;
             asrt.event = $12;
             asrt.time = *$11;
-            asrtList.push_back(asrt);
+            FSM.asrtList.push_back(asrt);
         }
         ;
 
