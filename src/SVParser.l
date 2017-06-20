@@ -1,6 +1,6 @@
 %{
 #include <string>
-#include "SVParser.hpp"
+#include "InputSequenceGenerator.hpp"
 #include "SVParser.tab.hpp"
 
 char tmps[100];

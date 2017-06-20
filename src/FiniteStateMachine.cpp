@@ -7,7 +7,6 @@ using std::cout;
 namespace SVParser {
 FiniteStateMachine::FiniteStateMachine()
 {
-    yyparse(*this);
 }
 
 void FiniteStateMachine::insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out)

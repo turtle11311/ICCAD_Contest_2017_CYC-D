@@ -17,7 +17,6 @@ using std::cout;
 using std::endl;
 
 extern FILE* yyin;
-extern std::list< Assertion > asrtList;
 
 std::ofstream output;
 
@@ -41,7 +40,7 @@ int main(int argc, char* argv[])
     // speed up c++ STL I/O
     std::ios_base::sync_with_stdio(false);
 
-    generator.evalInitial2State();
+    generator.preprocess();
 
     delete state;
     return EXIT_SUCCESS;

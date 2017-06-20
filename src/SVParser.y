@@ -1,5 +1,5 @@
 %{
-#include "SVParser.hpp"
+#include "InputSequenceGenerator.hpp"
 #include <cstdio>
 #include <iostream>
 #include <list>
@@ -14,7 +14,7 @@ using namespace SVParser;
 using std::cout;
 using std::endl;
 
-int yyerror(SVParser::FiniteStateMachine& FSM, const char* text) {
+int yyerror(SVParser::InputSequenceGenerator& FSM, const char* text) {
     fprintf(stderr, "%s is %s in line %d\n", text, yytext, yylineno);
     return 1;
 }
@@ -29,7 +29,7 @@ std::list<Assertion> asrtList;
 int nowState = -1;
 %}
 
-%parse-param { SVParser::FiniteStateMachine& FSM }
+%parse-param { SVParser::InputSequenceGenerator& FSM }
 
 %union {
   std::string* string;

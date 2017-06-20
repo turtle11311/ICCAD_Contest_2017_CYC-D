@@ -7,9 +7,10 @@ namespace SVParser {
 InputSequenceGenerator::InputSequenceGenerator()
     : _Base()
 {
+    ::yyparse(*this);
 }
 
-void preprocess()
+void InputSequenceGenerator::preprocess()
 {
     evalInitial2State();
     // purge unreach state
@@ -27,17 +28,18 @@ void InputSequenceGenerator::evalInitial2State()
     initial2ActivetedList[0] = std::move(InputSequence(1, Pattern(inputSize())));
     bfsQueue.front()->traversed = true;
     while (bfsQueue.size()) {
-        if (!next->traversed) {
-            next->layer = bfsQueue.front()->layer + 1;
-            initial2ActivetedList[next->label] = initial2ActivetedList[bfsQueue.front()->label];
-            initial2ActivetedList[next->label].push_back(transition->defaultPattern());
-            bfsQueue.push(next);
-            next->traversed = true;
+        for (Transition* transition : bfsQueue.front()->transitions) {
+            State* next = transition->nState;
+            if (!next->traversed) {
+                next->layer = bfsQueue.front()->layer + 1;
+                initial2ActivetedList[next->label] = initial2ActivetedList[bfsQueue.front()->label];
+                initial2ActivetedList[next->label].push_back(transition->defaultPattern());
+                bfsQueue.push(next);
+                next->traversed = true;
+            }
         }
+        bfsQueue.pop();
     }
-
-    bfsQueue.pop();
-}
 }
 
 void InputSequenceGenerator::purgeState(int state)
