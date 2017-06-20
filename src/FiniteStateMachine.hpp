@@ -12,7 +12,7 @@ class FiniteStateMachine;
 extern int yyparse(SVParser::FiniteStateMachine& FSM);
 
 namespace SVParser {
-class FiniteStateMachine : private std::map< int, State* > {
+class FiniteStateMachine : protected std::map< int, State* > {
     typedef std::map< int, State* > _Base;
     friend int(::yyparse)(FiniteStateMachine& FSM);
 

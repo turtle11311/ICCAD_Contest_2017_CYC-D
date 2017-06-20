@@ -16,7 +16,6 @@ using namespace SVParser;
 using std::cout;
 using std::endl;
 
-extern int yyparse(SVParser::FiniteStateMachine& FSM);
 extern FILE* yyin;
 extern std::list< Assertion > asrtList;
 
@@ -38,10 +37,11 @@ int main(int argc, char* argv[])
     parseArgAndInitial(argc, argv);
 
     InputSequenceGenerator generator;
-    yyparse(generator);
 
     // speed up c++ STL I/O
     std::ios_base::sync_with_stdio(false);
+
+    generator.evalInitial2State();
 
     delete state;
     return EXIT_SUCCESS;
