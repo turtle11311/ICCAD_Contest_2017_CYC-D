@@ -17,6 +17,11 @@ void InputSequenceGenerator::preprocess()
     for (auto it = this->begin(); it != this->end(); ++it)
         if (!it->second->traversed)
             purgeState(it->first);
+
+    for (auto& asrt : asrtList) {
+        staticFindActivatedPoint(asrt);
+        asrt.sortActivatedPointByLayer();
+    }
 }
 
 void InputSequenceGenerator::evalInitial2State()
@@ -39,6 +44,60 @@ void InputSequenceGenerator::evalInitial2State()
             }
         }
         bfsQueue.pop();
+    }
+}
+
+void InputSequenceGenerator::staticFindActivatedPoint(Assertion& asrt)
+{
+    bool signalFlag = asrt.trigger.target == TargetType::OUT ? true : false;
+    bool trigger = asrt.trigger.change == SignalEdge::ROSE ? true : false;
+    unsigned int index = asrt.trigger.index;
+    // cout << "Activated target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
+    //      << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
+    if (signalFlag)
+        staticFindOutputSignalActivatedPoint(trigger, index, asrt.APList);
+    else
+        staticFindInputSignalActivatedPoint(trigger, index, asrt.APList);
+}
+
+void InputSequenceGenerator::staticFindOutputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList)
+{
+    for (auto& state : (*this)) {
+        for (Transition* trans1 : state.second->transitions) {
+            if (trans1->out[index] == !trigger) {
+                for (Transition* trans2 : getState(trans1->nState->label)->transitions) {
+                    if (trans2->out[index] == trigger) {
+                        APList.push_back(ActivatedPoint({ getState(state.second->label), trans1->pattern, trans2->pattern, trans1, trans2 }));
+                    }
+                }
+            }
+        }
+    }
+}
+
+void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList)
+{
+    for (auto& state : (*this)) {
+        for (Transition* trans1 : state.second->transitions) {
+            Pattern expectedPattern1 = trans1->pattern;
+            if (expectedPattern1[index] == !trigger || expectedPattern1[index] == 2)
+                expectedPattern1[index] = !trigger;
+            else
+                continue;
+
+            if (trans1->pattern == expectedPattern1) {
+                for (Transition* trans2 : getState(trans1->nState->label)->transitions) {
+                    Pattern expectedPattern2 = trans2->pattern;
+                    if (expectedPattern2[index] == trigger || expectedPattern2[index] == 2)
+                        expectedPattern2[index] = trigger;
+                    else
+                        continue;
+                    if (trans2->pattern == expectedPattern2) {
+                        APList.push_back(ActivatedPoint({ getState(state.second->label), expectedPattern1, expectedPattern2, trans1, trans2 }));
+                    }
+                }
+            }
+        }
     }
 }
 

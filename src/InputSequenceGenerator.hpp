@@ -21,9 +21,12 @@ class InputSequenceGenerator : protected FiniteStateMachine {
 public:
     InputSequenceGenerator();
     void preprocess();
+    void staticFindActivatedPoint(Assertion& asrt);
 
 private:
     void evalInitial2State();
+    void staticFindOutputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
+    void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void purgeState(int state);
     InputSequence answer;
     std::map< int, InputSequence > initial2ActivetedList;
