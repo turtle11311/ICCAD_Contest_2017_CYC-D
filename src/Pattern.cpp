@@ -1,4 +1,5 @@
 #include "Pattern.hpp"
+#include <algorithm>
 
 namespace SVParser {
 
@@ -61,4 +62,4 @@ std::ostream& operator<<(std::ostream& os, const Pattern& pattern)
     std::reverse(str.begin(), str.end());
     return os << str;
 }
-}
+} // namespace SVParser

@@ -47,4 +47,4 @@ private:
     ActivatedPoint targetAP;
     bool found;
 };
-}
+} // namespace SVParser

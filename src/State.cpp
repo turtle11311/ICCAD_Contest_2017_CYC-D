@@ -60,4 +60,4 @@ std::ostream& operator<<(std::ostream& os, const Transition& transition)
 {
     return os << "Match: " << transition.pattern << " then go to State=>" << transition.nState->label << " output: " << transition.out;
 }
-}
+} // namespace SVParser

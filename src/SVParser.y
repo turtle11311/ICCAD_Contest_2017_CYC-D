@@ -238,7 +238,7 @@ bit_pattern
 assertion_rule
         : assertion_identifier ':' assertion_property_statement
         ;
-    
+
 assertion_property_statement
         : "assert" "property" '(' property_block ')' action_block
         ;
@@ -246,7 +246,7 @@ assertion_property_statement
 property_block
         : '@' '(' event_expression ')' signal_change '|' '-' '>' '#' '#' range signal_change
         {
-            Assertion asrt; 
+            Assertion asrt;
             asrt.trigger = $5;
             asrt.event = $12;
             asrt.time = *$11;

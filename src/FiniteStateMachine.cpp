@@ -59,4 +59,4 @@ void FiniteStateMachine::resetTraversed()
         state.second->tit = state.second->transitions.begin();
     }
 }
-}
+} // namespace SVParser

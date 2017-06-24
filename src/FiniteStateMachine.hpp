@@ -29,4 +29,4 @@ protected:
     std::set< State* > isolatedStates;
     std::map< int, std::vector< State* > > rlayerTable;
 };
-}
+} // namespace SVParser

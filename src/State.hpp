@@ -41,4 +41,4 @@ public:
     Pattern out;
     State* nState;
 };
-}
+} // namespace SVParser

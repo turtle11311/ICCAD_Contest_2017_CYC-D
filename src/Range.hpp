@@ -18,4 +18,4 @@ public:
     }
     inline size_t length() { return std::abs(static_cast< int >(first - second)) + 1; }
 };
-}
+} // namespace SVParser
