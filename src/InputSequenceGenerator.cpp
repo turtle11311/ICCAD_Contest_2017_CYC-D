@@ -42,8 +42,6 @@ void InputSequenceGenerator::simulator()
     }
 }
 
-std::list< State* > QAQ;
-
 void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
     bool signalFlag = asrt.event.target == TargetType::OUT ? true : false;
@@ -56,7 +54,6 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
-            // QAQ.clear();
             res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, ap.state, 0);
             if (res)
                 break;
@@ -89,7 +86,6 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
             return true;
     }
     for (auto trans = current->transitions.begin(); trans != current->transitions.end(); ++trans) {
-        // QAQ.push_back(current);
         bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, (*trans)->nState, step + 1);
         if (res == true)
             return true;
