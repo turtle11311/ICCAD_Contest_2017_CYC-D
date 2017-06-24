@@ -55,40 +55,12 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
          << " is " << (triggerFlag ? "rose" : "fell")
          << " in range[" << asrt.time.first << ":" << asrt.time.second << "]"
          << "." << endl;
+
     bool res = false;
     if (signalFlag) {
-<<<<<<< HEAD
-        for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it) {
-
-            asrtFailedFlag = false;
-            findOutputSignalTermiateStartPoint(triggerFlag, index, *it, asrt.time);
-            if (path.size() > 1)
-                recursiveTraverseOS(std::list< ActivatedPoint >(1, path.back()), triggerFlag, index, asrt.time.length());
-            if (asrtFailedFlag) {
-                path.front().printAP();
-                cout << endl
-                     << endl;
-                targetAP = path.front();
-                recPath.push_back(getState(0));
-                recursiveDFS();
-                recPath.pop_front();
-                for (Transition* trans : (*this)[0]->transitions) {
-                    if (trans->nState == recPath.front())
-                        firstHalfAnswer.push_front(trans->defaultPattern());
-                }
-                for (Pattern& p : firstHalfAnswer)
-                    cout << p << endl;
-                convertPath2InputSequence();
-                printInputSequence();
-                recPath.clear();
-                answer.clear();
-                firstHalfAnswer.clear();
-                found = false;
-=======
         for (ActivatedPoint& ap : asrt.APList) {
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, ap.state, 0);
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition2->nState, ap.transition2, 0);
             if (res)
->>>>>>> 54b2a02af64050961f1ff25e2ab10e273e3b61ab
                 break;
         }
         cout << "Assertion " << (res ? "Fail" : "Success") << endl;
@@ -96,10 +68,13 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     }
 }
 
-bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, State* current, size_t step)
+bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t2, size_t step)
 {
-    if (step == asrt.time.second)
+    sequence.push_back(t2->defaultPattern());
+    if (step == asrt.time.second) {
+        sequence.pop_back();
         return false;
+    }
     if (step >= asrt.time.first) {
         bool income = false, outcome = false;
         size_t index = asrt.event.index;
@@ -115,14 +90,17 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
                 break;
             }
         }
-        if (income && outcome)
+        if (income && outcome) {
+            cout << step << endl;
             return true;
+        }
     }
     for (auto trans = current->transitions.begin(); trans != current->transitions.end(); ++trans) {
-        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, (*trans)->nState, step + 1);
+        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, sequence, (*trans)->nState, *trans, step + 1);
         if (res == true)
             return true;
     }
+    sequence.pop_back();
 }
 
 void InputSequenceGenerator::findOutputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
@@ -324,6 +302,15 @@ void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, u
                 }
             }
         }
+    }
+}
+
+void InputSequenceGenerator::outputNthAssertion(int n)
+{
+    auto ait = std::next(asrtList.begin(), n);
+    InputSequence& answer = answerDict[&(*ait)];
+    for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
+        output << *iit << endl;
     }
 }
 

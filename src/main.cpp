@@ -19,6 +19,8 @@ extern FILE* yyin;
 
 std::ofstream output;
 
+int assertionID = 0;
+
 int ptnSize;
 int* state = new int;
 std::vector< Pattern > inputSequence;
@@ -42,6 +44,8 @@ int main(int argc, char* argv[])
     generator.preprocess();
     generator.simulator();
 
+    generator.outputNthAssertion(assertionID);
+
     delete state;
     return EXIT_SUCCESS;
 }
@@ -54,13 +58,16 @@ void parseArgAndInitial(int argc, char* argv[])
     }
 
     char opt;
-    while ((opt = getopt(argc, argv, "i:o:")) != EOF) {
+    while ((opt = getopt(argc, argv, "i:o:t:")) != EOF) {
         switch (opt) {
         case 'i':
             yyin = fopen(optarg, "r");
             break;
         case 'o':
             output.open(optarg, std::ios::out);
+            break;
+        case 't':
+            assertionID = atoi(optarg);
             break;
         default:
             break;
