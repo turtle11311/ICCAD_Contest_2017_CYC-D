@@ -1,6 +1,8 @@
 #include "InputSequenceGenerator.hpp"
+#include <fstream>
 #include <map>
 #include <queue>
+extern std::ofstream output;
 
 namespace SVParser {
 
@@ -59,7 +61,10 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
                      << endl;
 
                 usingDijkstraForNonWeightedGraph(path.front());
-                printPath();
+                //printPath();
+                convertPath2InputSequence();
+                printInputSequence();
+                answer.clear();
                 break;
             }
         }
@@ -214,15 +219,16 @@ void InputSequenceGenerator::evalInitial2State()
     State* S0 = this->getState(0);
     S0->layer = 0;
     bfsQueue.push(S0);
-    initial2ActivetedList[0] = std::move(InputSequence(1, Pattern(inputSize())));
     bfsQueue.front()->traversed = true;
     while (bfsQueue.size()) {
         for (Transition* transition : bfsQueue.front()->transitions) {
             State* next = transition->nState;
             if (!next->traversed) {
                 next->layer = bfsQueue.front()->layer + 1;
-                initial2ActivetedList[next->label] = initial2ActivetedList[bfsQueue.front()->label];
-                initial2ActivetedList[next->label].push_back(transition->defaultPattern());
+                if (this->rlayerTable.find(next->layer) != this->rlayerTable.end())
+                    this->rlayerTable[next->layer].push_back(next);
+                else
+                    this->rlayerTable[next->layer] = (std::vector< State* >(1, next));
                 bfsQueue.push(next);
                 next->traversed = true;
             }
@@ -283,6 +289,21 @@ void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, u
             }
         }
     }
+}
+
+void InputSequenceGenerator::convertPath2InputSequence()
+{
+    auto it = path.begin();
+    answer.push_back(it->transition1->defaultPattern());
+    for (; it != path.end(); ++it)
+        answer.push_back(it->transition2->defaultPattern());
+}
+
+void InputSequenceGenerator::printInputSequence()
+{
+    for (auto it = answer.begin(); it != answer.end(); ++it)
+        output << *it << endl;
+    output << endl;
 }
 
 void InputSequenceGenerator::purgeState(int state)

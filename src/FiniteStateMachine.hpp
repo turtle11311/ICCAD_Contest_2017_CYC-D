@@ -27,5 +27,6 @@ protected:
     void insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out);
     size_t PATTERNSIZE;
     std::set< State* > isolatedStates;
+    std::map< int, std::vector< State* > > rlayerTable;
 };
 }

@@ -28,7 +28,7 @@ $(CASEDIR)/input_sequence: $(BINARY)
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
-$(BINARY): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o
+$(BINARY): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o InputSequenceGenerator.o
 	$(CXX) $(CXXFLAGS) $^ -static -o $@
 
 SVParser.lex.cpp: SVParser.l SVParser.y

@@ -24,6 +24,8 @@ public:
     void preprocess();
     void staticFindActivatedPoint(Assertion& asrt);
     void printPath();
+    void convertPath2InputSequence();
+    void printInputSequence();
 
 private:
     void evalInitial2State();
