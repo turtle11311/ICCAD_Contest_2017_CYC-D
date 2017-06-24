@@ -57,9 +57,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
          << "." << endl;
     bool res = false;
     if (signalFlag) {
-<<<<<<< HEAD
         for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it) {
-
             asrtFailedFlag = false;
             findOutputSignalTermiateStartPoint(triggerFlag, index, *it, asrt.time);
             if (path.size() > 1)
@@ -76,20 +74,27 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
                     if (trans->nState == recPath.front())
                         firstHalfAnswer.push_front(trans->defaultPattern());
                 }
-                for (Pattern& p : firstHalfAnswer)
-                    cout << p << endl;
+                State* now = (*this)[0];
+                for (Pattern& p : firstHalfAnswer) {
+                    cout << p << " -> "
+                         << "S" << now->label << " -> ";
+                    for (Transition* trans : now->transitions) {
+                        if (trans->pattern == p) {
+                            cout << trans->out;
+                            now = trans->nState;
+                            break;
+                        }
+                    }
+                    cout << endl;
+                }
                 convertPath2InputSequence();
                 printInputSequence();
                 recPath.clear();
                 answer.clear();
                 firstHalfAnswer.clear();
                 found = false;
-=======
-        for (ActivatedPoint& ap : asrt.APList) {
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, ap.state, 0);
-            if (res)
->>>>>>> 54b2a02af64050961f1ff25e2ab10e273e3b61ab
                 break;
+            }
         }
         cout << "Assertion " << (res ? "Fail" : "Success") << endl;
     } else {
@@ -223,6 +228,7 @@ void InputSequenceGenerator::recursiveDFS()
         if (found)
             return;
         if (*it == targetAP.transition1) {
+            firstHalfAnswer.push_back(targetAP.transition1->defaultPattern());
             found = true;
             return;
         }
