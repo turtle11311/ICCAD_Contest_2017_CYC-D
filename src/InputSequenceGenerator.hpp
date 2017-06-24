@@ -36,12 +36,15 @@ private:
     void recursiveTraverseOS(std::list< ActivatedPoint > stack, bool triggerFlag, unsigned int index, unsigned int cycle);
     void findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
     void usingDijkstraForNonWeightedGraph(ActivatedPoint& ap);
-    std::list< ActivatedPoint > integerPath2APPathConverter(std::list< int >& shortestPath, ActivatedPoint& ap);
     void purgeState(int state);
+    void recursiveDFS();
     InputSequence answer;
     std::map< int, InputSequence > initial2ActivetedList;
     std::list< Assertion > asrtList;
     std::list< ActivatedPoint > path;
     bool asrtFailedFlag = false;
+    std::list< State* > recPath;
+    ActivatedPoint targetAP;
+    bool found;
 };
 }

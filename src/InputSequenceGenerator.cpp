@@ -8,6 +8,7 @@ namespace SVParser {
 
 InputSequenceGenerator::InputSequenceGenerator()
     : _Base()
+    , found(false)
 {
     ::yyparse(*this);
 }
@@ -51,20 +52,22 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
          << "." << endl;
     if (signalFlag) {
         for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it) {
+            asrtFailedFlag = false;
             findOutputSignalTermiateStartPoint(triggerFlag, index, *it, asrt.time);
             if (path.size() > 1)
                 recursiveTraverseOS(std::list< ActivatedPoint >(1, path.back()), triggerFlag, index, asrt.time.length());
             if (asrtFailedFlag) {
-                cout << "Activated point: ";
                 path.front().printAP();
                 cout << endl
                      << endl;
-
-                usingDijkstraForNonWeightedGraph(path.front());
-                //printPath();
+                targetAP = path.front();
+                recPath.push_back(getState(0));
+                recursiveDFS();
                 convertPath2InputSequence();
                 printInputSequence();
+                recPath.clear();
                 answer.clear();
+                found = false;
                 break;
             }
         }
@@ -146,60 +149,43 @@ void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag,
 void InputSequenceGenerator::usingDijkstraForNonWeightedGraph(ActivatedPoint& ap)
 {
     resetTraversed();
-    State* goal = ap.state;
-    std::list< std::list< int > > queue;
-    queue.push_back(std::list< int >(1, 0));
-    while (queue.size()) {
-        State* cur = getState(queue.back().front());
-        for (auto it = cur->transitions.begin(); it != cur->transitions.end(); ++it) {
-            std::list< int > shortestPath = queue.front();
-            shortestPath.push_back((*it)->nState->label);
-            if (cur->traversed)
-                continue;
-            if ((*it)->nState == goal) {
-                std::list< ActivatedPoint > temp = integerPath2APPathConverter(shortestPath, ap);
-                for (auto tempIt = temp.rbegin(); tempIt != temp.rend(); ++tempIt) {
-                    path.push_front(*tempIt);
-                }
-                queue.clear();
-                return;
-            } else {
-                if ((*it)->nState == cur)
-                    cur->traversed = true;
-                queue.push_back(shortestPath);
-            }
+    std::list< State* > stack;
+    stack.push_back(getState(0));
+    while (!stack.empty()) {
+        State* cur = stack.back();
+        if (cur->tit == cur->transitions.end() || stack.size() - 1 > ap.state->layer) {
+            cur->tit = cur->transitions.begin();
+            stack.pop_back();
+        } else {
+            if (*cur->tit == ap.transition1)
+                break;
+            stack.push_back((*cur->tit)->nState);
+            cur->tit++;
         }
-        queue.pop_front();
+    }
+    if (!stack.empty()) {
+        output << "!!!!!!!!!!!!!!!!!!\n";
     }
 }
 
-std::list< ActivatedPoint > InputSequenceGenerator::integerPath2APPathConverter(std::list< int >& shortestPath, ActivatedPoint& ap)
+void InputSequenceGenerator::recursiveDFS()
 {
-    cout << shortestPath.size() << endl;
-    std::list< ActivatedPoint > temp;
-    auto it = shortestPath.begin();
-    ++it;
-    auto _it = shortestPath.begin();
-    for (State::From& from : getState(*it)->fromList) {
-        if (from.state == getState(*_it)) {
-            temp.push_back(ActivatedPoint({ getState(*_it), from.transition->pattern, from.transition->pattern, from.transition, from.transition }));
-            break;
+    State* cur = recPath.back();
+    for (auto it = cur->transitions.begin(); it != cur->transitions.end(); ++it) {
+        if (found)
+            return;
+        if (*it == targetAP.transition1) {
+            found = true;
+            return;
+        }
+        if (recPath.size() - 1 < targetAP.state->layer) {
+            recPath.push_back((*it)->nState);
+            recursiveDFS();
         }
     }
-    ++_it, ++it;
-    for (; it != shortestPath.end(); ++it) {
-        for (State::From& from : getState(*it)->fromList) {
-            if (from.state == getState(*_it)) {
-                temp.back().pattern2 = from.transition->pattern;
-                temp.back().transition2 = from.transition;
-                temp.push_back(ActivatedPoint({ getState(*_it), from.transition->pattern, from.transition->pattern, from.transition, from.transition }));
-            }
-        }
-    }
-    temp.back().pattern2 = ap.pattern1;
-    temp.back().transition2 = ap.transition1;
-    cout << temp.size() << endl;
-    return temp;
+    if (found)
+        return;
+    recPath.pop_back();
 }
 
 void InputSequenceGenerator::printPath()

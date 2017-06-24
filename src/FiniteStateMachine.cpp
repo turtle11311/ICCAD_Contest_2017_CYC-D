@@ -56,6 +56,7 @@ void FiniteStateMachine::resetTraversed()
 {
     for (auto& state : (*this)) {
         state.second->traversed = false;
+        state.second->tit = state.second->transitions.begin();
     }
 }
 }

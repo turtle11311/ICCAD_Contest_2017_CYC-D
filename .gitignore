@@ -16,3 +16,6 @@
 
 # executable file
 sequence_generator
+
+# test file folder
+test_cases/
