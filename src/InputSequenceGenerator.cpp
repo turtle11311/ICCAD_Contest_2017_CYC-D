@@ -1,4 +1,5 @@
 #include "InputSequenceGenerator.hpp"
+#include <algorithm>
 #include <fstream>
 #include <map>
 #include <queue>
@@ -54,7 +55,9 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
          << " is " << (triggerFlag ? "rose" : "fell")
          << " in range[" << asrt.time.first << ":" << asrt.time.second << "]"
          << "." << endl;
+    bool res = false;
     if (signalFlag) {
+<<<<<<< HEAD
         for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it) {
 
             asrtFailedFlag = false;
@@ -81,12 +84,44 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
                 answer.clear();
                 firstHalfAnswer.clear();
                 found = false;
+=======
+        for (ActivatedPoint& ap : asrt.APList) {
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, ap.state, 0);
+            if (res)
+>>>>>>> 54b2a02af64050961f1ff25e2ab10e273e3b61ab
+                break;
+        }
+        cout << "Assertion " << (res ? "Fail" : "Success") << endl;
+    } else {
+    }
+}
+
+bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, State* current, size_t step)
+{
+    if (step == asrt.time.second)
+        return false;
+    if (step >= asrt.time.first) {
+        bool income = false, outcome = false;
+        size_t index = asrt.event.index;
+        for (State::From& from : current->fromList) {
+            if (from.transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 0 : 1)) {
+                income = true;
                 break;
             }
         }
-    } else {
-        for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it)
-            findInputSignalTermiateStartPoint(triggerFlag, index, *it, asrt.time);
+        for (Transition* transition : current->transitions) {
+            if (transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 1 : 0)) {
+                outcome = true;
+                break;
+            }
+        }
+        if (income && outcome)
+            return true;
+    }
+    for (auto trans = current->transitions.begin(); trans != current->transitions.end(); ++trans) {
+        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, (*trans)->nState, step + 1);
+        if (res == true)
+            return true;
     }
 }
 
@@ -96,7 +131,7 @@ void InputSequenceGenerator::findOutputSignalTermiateStartPoint(bool triggerFlag
     unsigned int start = range.first - 1;
     bool selfCycle = false;
     Transition* SCT; // self cycle Transition
-    State* nState = ap.transition2->nState;
+    State* nState = ap.state;
     for (auto it = nState->transitions.begin(); it != nState->transitions.end(); ++it) {
         if ((*it)->nState == nState) {
             selfCycle = true;
@@ -310,6 +345,16 @@ void InputSequenceGenerator::printInputSequence()
 void InputSequenceGenerator::purgeState(int state)
 {
     auto it = this->find(state);
+    for (Transition* trans : it->second->transitions) {
+        for (State::From& from : trans->nState->fromList) {
+            trans->nState->fromList.erase(std::remove_if(trans->nState->fromList.begin(),
+                                              trans->nState->fromList.end(),
+                                              [=](State::From& from) {
+                                                  return from.state == it->second;
+                                              }),
+                trans->nState->fromList.end());
+        }
+    }
     if (it != this->end()) {
         delete it->second;
         this->erase(it);
