@@ -46,12 +46,17 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     bool signalFlag = asrt.event.target == TargetType::OUT ? true : false;
     bool triggerFlag = asrt.event.change == SignalEdge::ROSE ? true : false;
     unsigned int index = asrt.event.index;
+    cout << "Activated target: " << ((asrt.trigger.target == TargetType::OUT) ? "out[" : "in[")
+         << asrt.trigger.index << "]"
+         << " is " << (asrt.trigger.change == SignalEdge::ROSE ? "rose" : "fell")
+         << endl;
     cout << "Terminate target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
          << " is " << (triggerFlag ? "rose" : "fell")
          << " in range[" << asrt.time.first << ":" << asrt.time.second << "]"
          << "." << endl;
     if (signalFlag) {
         for (auto it = asrt.APList.begin(); it != asrt.APList.end(); ++it) {
+
             asrtFailedFlag = false;
             findOutputSignalTermiateStartPoint(triggerFlag, index, *it, asrt.time);
             if (path.size() > 1)
@@ -63,10 +68,18 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
                 targetAP = path.front();
                 recPath.push_back(getState(0));
                 recursiveDFS();
+                recPath.pop_front();
+                for (Transition* trans : (*this)[0]->transitions) {
+                    if (trans->nState == recPath.front())
+                        firstHalfAnswer.push_front(trans->defaultPattern());
+                }
+                for (Pattern& p : firstHalfAnswer)
+                    cout << p << endl;
                 convertPath2InputSequence();
                 printInputSequence();
                 recPath.clear();
                 answer.clear();
+                firstHalfAnswer.clear();
                 found = false;
                 break;
             }
@@ -180,11 +193,13 @@ void InputSequenceGenerator::recursiveDFS()
         }
         if (recPath.size() - 1 < targetAP.state->layer) {
             recPath.push_back((*it)->nState);
+            firstHalfAnswer.push_back((*it)->defaultPattern());
             recursiveDFS();
         }
     }
     if (found)
         return;
+    firstHalfAnswer.pop_back();
     recPath.pop_back();
 }
 

@@ -45,6 +45,7 @@ private:
     bool asrtFailedFlag = false;
     std::list< State* > recPath;
     ActivatedPoint targetAP;
+    InputSequence firstHalfAnswer;
     bool found;
 };
 } // namespace SVParser
