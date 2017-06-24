@@ -48,4 +48,4 @@ struct Assertion {
     void sortActivatedPointByLayer();
     void printActivatedPoint();
 };
-}
+} // namespace SVParser

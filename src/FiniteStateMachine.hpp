@@ -28,4 +28,4 @@ protected:
     size_t PATTERNSIZE;
     std::set< State* > isolatedStates;
 };
-}
+} // namespace SVParser

@@ -42,4 +42,4 @@ private:
     std::list< ActivatedPoint > path;
     bool asrtFailedFlag = false;
 };
-}
+} // namespace SVParser

@@ -293,4 +293,4 @@ void InputSequenceGenerator::purgeState(int state)
         this->erase(it);
     }
 }
-}
+} // namespace SVParser

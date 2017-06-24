@@ -25,4 +25,4 @@ void Assertion::printActivatedPoint()
     cout << endl
          << endl;
 }
-}
+} // namespace SVParser

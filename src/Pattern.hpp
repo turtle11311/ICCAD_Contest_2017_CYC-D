@@ -23,4 +23,4 @@ public:
     const Pattern& operator=(const Pattern& rhs);
     bool operator==(const Pattern& rhs);
 };
-}
+} // namespace SVParser

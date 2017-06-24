@@ -58,4 +58,4 @@ void FiniteStateMachine::resetTraversed()
         state.second->traversed = false;
     }
 }
-}
+} // namespace SVParser
