@@ -1,4 +1,5 @@
 #include "Pattern.hpp"
+#include <algorithm>
 
 namespace SVParser {
 
