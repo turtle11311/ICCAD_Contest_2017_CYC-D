@@ -34,7 +34,7 @@ $(BINARY): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o Fi
 SVParser.lex.cpp: SVParser.l SVParser.y
 	$(LEX) -t $< > $@
 
-SVParser.tab.cpp: SVParser.y SVParser.hpp
+SVParser.tab.cpp: SVParser.y
 	$(YACC) -d -o $@ $<
 
 clean:
