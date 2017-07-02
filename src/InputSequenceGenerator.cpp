@@ -86,7 +86,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t2, size_t step)
 {
     sequence.push_back(t2->defaultPattern());
-    if (step == asrt.time.second) {
+    if (step > asrt.time.second) {
         sequence.pop_back();
         return false;
     }
