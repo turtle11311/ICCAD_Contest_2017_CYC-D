@@ -59,14 +59,14 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition2->nState, ap.transition2, 0);
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition1->nState, ap.transition2, 0);
             if (res) {
                 targetAP = ap;
                 break;
             }
         }
     }
-    cout << "Assertion " << (res ? "Fail" : "Success") << endl;
+    cout << "Assertion " << (res ? "Fail" : "QAQ") << endl;
     if (res) {
         recPath.push_back(getState(0));
         recursiveDFS();
@@ -87,27 +87,26 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
 {
     sequence.push_back(t2->defaultPattern());
     if (step > asrt.time.second) {
-        sequence.pop_back();
-        return false;
+        return true;
     }
-    if (step >= asrt.time.first) {
+    if (step > asrt.time.first) {
         bool income = false, outcome = false;
         size_t index = asrt.event.index;
         for (State::From& from : current->fromList) {
-            if (from.transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 0 : 1)) {
+            if (from.transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 1 : 0)) {
                 income = true;
                 break;
             }
         }
         for (Transition* transition : current->transitions) {
-            if (transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 1 : 0)) {
+            if (transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 0 : 1)) {
                 outcome = true;
                 break;
             }
         }
         if (income && outcome) {
-            cout << step << endl;
-            return true;
+            sequence.pop_back();
+            return false;
         }
     }
     for (auto trans = current->transitions.begin(); trans != current->transitions.end(); ++trans) {
