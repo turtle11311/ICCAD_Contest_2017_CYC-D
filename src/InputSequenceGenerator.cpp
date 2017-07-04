@@ -59,7 +59,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition1->nState, ap.transition2, 0);
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition1->nState, ap.transition1 ,ap.transition2, 0);
             if (res) {
                 targetAP = ap;
                 break;
@@ -83,8 +83,9 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     firstHalfAnswer.clear();
 }
 
-bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t2, size_t step)
+bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step)
 {
+    cout << *t2 << endl;
     sequence.push_back(t2->defaultPattern());
     if (step > asrt.time.second) {
         return true;
@@ -92,17 +93,12 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
     if (step > asrt.time.first) {
         bool income = false, outcome = false;
         size_t index = asrt.event.index;
-        for (State::From& from : current->fromList) {
-            if (from.transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 1 : 0)) {
-                income = true;
-                break;
-            }
+
+        if (t1->out[index] == (asrt.event.change == SignalEdge::FELL ? 1 : 0)) {
+            income = true;
         }
-        for (Transition* transition : current->transitions) {
-            if (transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 0 : 1)) {
-                outcome = true;
-                break;
-            }
+        if (t2->out[index] == (asrt.event.change == SignalEdge::FELL ? 0 : 1)) {
+            outcome = true;
         }
         if (income && outcome) {
             sequence.pop_back();
@@ -110,7 +106,7 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
         }
     }
     for (auto trans = current->transitions.begin(); trans != current->transitions.end(); ++trans) {
-        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, sequence, (*trans)->nState, *trans, step + 1);
+        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, sequence, (*trans)->nState, t2, *trans, step + 1);
         if (res == true)
             return true;
     }
