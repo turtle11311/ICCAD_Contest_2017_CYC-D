@@ -32,6 +32,20 @@ State* FiniteStateMachine::getState(int state)
     return ((*this)[state] = new State(state));
 }
 
+void FiniteStateMachine::input(const Pattern& pattern)
+{
+    in2 = in1;
+    out2 = out1;
+    in1 = pattern;
+    for (Transition* trans : current->transitions) {
+        if (trans->pattern == pattern) {
+            current = trans->nState;
+            out1 = trans->out;
+            break;
+        }
+    }
+}
+
 FiniteStateMachine::~FiniteStateMachine()
 {
     for (auto it = this->begin(); it != this->end(); ++it)
