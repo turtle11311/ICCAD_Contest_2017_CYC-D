@@ -7,14 +7,19 @@ VPATH = src/
 BINARY = sequence_generator
 CASE ?= tb1
 CASEDIR = test_cases/$(CASE)
+SERVER = cadb036@140.110.214.97
+REMOTEDIR = cadb2
 
-.PHONY: all clean test simulation output
+.PHONY: all clean test simulation output deploy
+
 
 all: $(BINARY)
 
-test: $(BINARY) simulation
+test:
+	$(MAKE) -C $(CASEDIR) --makefile=../../Makefile simulation
 
-simulation: $(CASEDIR)/simv output
+simulation: simv
+	make -C ../../ output CASE=$(CASE)
 	./simv
 
 simv: fsm.v test.v
@@ -22,8 +27,12 @@ simv: fsm.v test.v
 
 output: $(CASEDIR)/input_sequence
 
-$(CASEDIR)/input_sequence: $(BINARY)
-	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
+deploy: $(BINARY)
+	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
+	scp -r test_cases/ $(BINARY) Makefile $(SERVER):~/$(REMOTEDIR)
+
+$(CASEDIR)/input_sequence:
+	time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
 
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
