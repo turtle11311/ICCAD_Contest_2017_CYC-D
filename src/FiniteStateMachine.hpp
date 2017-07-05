@@ -16,6 +16,7 @@ public:
     using _Base::end;
     FiniteStateMachine();
     inline size_t inputSize() { return PATTERNSIZE; }
+    void input(const Pattern& pattern);
     State* getState(int state);
     void printStateLayer();
     void setIsolatedState(int state);
@@ -28,5 +29,8 @@ protected:
     size_t PATTERNSIZE;
     std::set< State* > isolatedStates;
     std::map< int, std::vector< State* > > rlayerTable;
+    State* current;
+    Pattern out1, out2;
+    Pattern in1, in2;
 };
 } // namespace SVParser
