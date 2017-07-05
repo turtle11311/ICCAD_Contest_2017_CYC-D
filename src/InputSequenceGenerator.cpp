@@ -59,7 +59,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition1->nState, ap.transition1 ,ap.transition2, 0);
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition1->nState, ap.transition1, ap.transition2, 0);
             if (res) {
                 targetAP = ap;
                 break;
@@ -319,12 +319,13 @@ void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, u
 
 void InputSequenceGenerator::outputNthAssertion(int n)
 {
-    auto ait = std::next(asrtList.begin(), n);
-    InputSequence& answer = answerDict[&(*ait)];
-    output << 0 << Pattern(PATTERNSIZE) << endl;
-    output << 1 << answer.front() << endl;
-    for (auto iit = std::next(answer.begin()); iit != answer.end(); ++iit) {
-        output << 0 << *iit << endl;
+    for (Assertion& asrt : asrtList) {
+        InputSequence& answer = answerDict[&asrt];
+        output << 0 << Pattern(PATTERNSIZE) << endl;
+        output << 1 << Pattern(PATTERNSIZE) << endl;
+        for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
+            output << 0 << *iit << endl;
+        }
     }
 }
 
