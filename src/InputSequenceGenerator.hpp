@@ -12,11 +12,6 @@ extern int yyparse(SVParser::InputSequenceGenerator& FSM);
 
 namespace SVParser {
 
-struct AssertionStatus {
-    size_t slack;
-    Assertion* target;
-};
-
 typedef std::list< Pattern > InputSequence;
 
 class InputSequenceGenerator : protected FiniteStateMachine {
@@ -35,7 +30,6 @@ public:
 
 private:
     void evalInitial2State();
-    void assertionInspector(InputSequence& seq);
     void staticFindOutputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
@@ -54,7 +48,6 @@ private:
     std::list< State* > recPath;
     ActivatedPoint targetAP;
     InputSequence firstHalfAnswer;
-    std::list< AssertionStatus > triggeredAssertion;
     bool found;
 };
 } // namespace SVParser

@@ -12,7 +12,6 @@ InputSequenceGenerator::InputSequenceGenerator()
     , found(false)
 {
     ::yyparse(*this);
-    current = getState(0);
 }
 
 void InputSequenceGenerator::preprocess()
@@ -79,7 +78,6 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
-        assertionInspector(answerDict[&asrt]);
     }
     recPath.clear();
     firstHalfAnswer.clear();
@@ -142,29 +140,6 @@ void InputSequenceGenerator::findOutputSignalTermiateStartPoint(bool triggerFlag
                     ap.transition2,
                     nState->transitions.front() }));
             nState = nState->transitions.front()->nState;
-        }
-    }
-}
-
-void InputSequenceGenerator::assertionInspector(InputSequence& seq)
-{
-    for (auto it = seq.begin(); it != seq.end(); ++it) {
-        this->input(*it);
-        for (Assertion& asrt : asrtList) {
-            if (asrt.failed)
-                continue;
-            size_t index = asrt.trigger.index;
-            bool triggerFlag = (asrt.trigger.change == SignalEdge::ROSE);
-            bool signalFlag = (asrt.trigger.target == TargetType::OUT);
-
-            Pattern pre = (signalFlag ? out1 : in1),
-                    cur = (signalFlag ? out2 : in2);
-            if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
-                triggeredAssertion.push_back(AssertionStatus{ 0, &asrt });
-            }
-        }
-        for (AssertionStatus& as : triggeredAssertion) {
-            
         }
     }
 }
