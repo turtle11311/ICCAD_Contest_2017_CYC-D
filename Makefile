@@ -25,14 +25,12 @@ simulation: simv
 simv: fsm.v test.v
 	vcs -sverilog fsm.v test.v
 
-output: $(CASEDIR)/input_sequence
+output:
+	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
 
 deploy: $(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
 	scp -r test_cases/ $(BINARY) Makefile $(SERVER):~/$(REMOTEDIR)
-
-$(CASEDIR)/input_sequence:
-	time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
 
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
