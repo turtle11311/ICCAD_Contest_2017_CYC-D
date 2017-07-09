@@ -34,13 +34,13 @@ State* FiniteStateMachine::getState(int state)
 
 void FiniteStateMachine::input(const Pattern& pattern)
 {
-    in2 = in1;
-    out2 = out1;
-    in1 = pattern;
+    in1 = in2;
+    out1 = out2;
+    in2 = pattern;
     for (Transition* trans : current->transitions) {
         if (trans->pattern == pattern) {
             current = trans->nState;
-            out1 = trans->out;
+            out2 = trans->out;
             break;
         }
     }

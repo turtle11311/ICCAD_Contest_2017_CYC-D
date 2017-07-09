@@ -15,6 +15,7 @@ namespace SVParser {
 struct AssertionStatus {
     size_t slack;
     Assertion* target;
+    bool suc;
 };
 
 typedef std::list< Pattern > InputSequence;

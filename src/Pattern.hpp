@@ -16,6 +16,7 @@ public:
     using _Base::size;
     using _Base::operator[];
     using _Base::operator=;
+    using _Base::push_back;
     Pattern(const size_t size = 0);
     Pattern(const Pattern& rhs);
     Pattern(const char* str);

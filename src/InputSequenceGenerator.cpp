@@ -32,16 +32,21 @@ void InputSequenceGenerator::preprocess()
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
-    int count = 0;
+    asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
+        return lhs.time.second < rhs.time.second;
+    });
     for (Assertion& asrt : asrtList) {
-        cout << "Assertion: " << ++count << endl;
+        cout << asrt.name << ": " << endl;
         path.clear();
         asrtFailedFlag = false;
-        fromActivatedPoint2AssertionFailed(asrt);
+        if (!asrt.failed)
+            fromActivatedPoint2AssertionFailed(asrt);
         cout << endl
              << endl;
     }
 }
+
+std::string name;
 
 void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
@@ -79,6 +84,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
+        name = asrt.name;
         assertionInspector(answerDict[&asrt]);
     }
     recPath.clear();
@@ -90,6 +96,7 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
     cout << *t2 << endl;
     sequence.push_back(t2->defaultPattern());
     if (step > asrt.time.second) {
+        asrt.failed = true;
         return true;
     }
     if (step > asrt.time.first) {
@@ -148,8 +155,15 @@ void InputSequenceGenerator::findOutputSignalTermiateStartPoint(bool triggerFlag
 
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
+    std::ofstream ff(name + ".out");
+    ff << endl
+       << endl;
+    in2 = Pattern(inputSize());
+    out2 = Pattern(inputSize());
+    int tc = 2;
     for (auto it = seq.begin(); it != seq.end(); ++it) {
         this->input(*it);
+        ff << out2 << endl;
         for (Assertion& asrt : asrtList) {
             if (asrt.failed)
                 continue;
@@ -160,13 +174,33 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             Pattern pre = (signalFlag ? out1 : in1),
                     cur = (signalFlag ? out2 : in2);
             if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
-                triggeredAssertion.push_back(AssertionStatus{ 0, &asrt });
+                triggeredAssertion.push_back(AssertionStatus{ 0, &asrt, false });
             }
         }
-        for (AssertionStatus& as : triggeredAssertion) {
-            
+        for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
+            Assertion& asrt = *as->target;
+            if (as->target->failed)
+                continue;
+            if (as->suc)
+                continue;
+            if (as->slack > asrt.time.second) {
+                cout << asrt.name << " Fail!!!" << endl;
+                asrt.failed = true;
+            } else if (as->slack >= asrt.time.first) {
+                size_t index = asrt.event.index;
+                bool triggerFlag = (asrt.event.change == SignalEdge::ROSE);
+                bool signalFlag = (asrt.event.target == TargetType::OUT);
+                Pattern pre = (signalFlag ? out1 : in1),
+                        cur = (signalFlag ? out2 : in2);
+                if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
+                    as->suc = true;
+                }
+            }
+            ++(as->slack);
         }
+        ++tc;
     }
+    ff.close();
 }
 
 void InputSequenceGenerator::recursiveTraverseOS(std::list< ActivatedPoint > stack, bool triggerFlag, unsigned int index, unsigned int cycle)
@@ -346,11 +380,18 @@ void InputSequenceGenerator::outputNthAssertion(int n)
 {
     for (Assertion& asrt : asrtList) {
         InputSequence& answer = answerDict[&asrt];
+        if (answer.size() == 0)
+            continue;
+        std::ofstream file(asrt.name + ".txt");
         output << 0 << Pattern(PATTERNSIZE) << endl;
         output << 1 << Pattern(PATTERNSIZE) << endl;
+        file << 0 << Pattern(PATTERNSIZE) << endl;
+        file << 1 << Pattern(PATTERNSIZE) << endl;
         for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
             output << 0 << *iit << endl;
+            file << 0 << *iit << endl;
         }
+        file.close();
     }
 }
 

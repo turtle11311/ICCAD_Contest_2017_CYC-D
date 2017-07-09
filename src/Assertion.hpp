@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <list>
+#include <string>
 using std::cout;
 using std::endl;
 
@@ -39,6 +40,7 @@ struct ActivatedPoint {
 
 struct Assertion {
 
+    std::string name;
     bool activated;
     bool failed;
     SignalChange trigger;
