@@ -354,13 +354,13 @@ void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, u
     }
 }
 
-void InputSequenceGenerator::outputNthAssertion(int n)
+void InputSequenceGenerator::outputAnswer()
 {
     for (Assertion& asrt : asrtList) {
         InputSequence& answer = answerDict[&asrt];
         if (answer.size() == 0)
             continue;
-        std::ofstream file(asrt.name + ".txt");
+        std::ofstream file(asrt.name + ".in");
         output << 0 << Pattern(PATTERNSIZE) << endl;
         output << 1 << Pattern(PATTERNSIZE) << endl;
         file << 0 << Pattern(PATTERNSIZE) << endl;

@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     generator.preprocess();
     generator.simulator();
 
-    generator.outputNthAssertion(assertionID);
+    generator.outputAnswer();
 
     delete state;
     return EXIT_SUCCESS;
