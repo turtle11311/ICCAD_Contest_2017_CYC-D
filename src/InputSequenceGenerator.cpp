@@ -242,28 +242,6 @@ void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag,
 {
 }
 
-void InputSequenceGenerator::usingDijkstraForNonWeightedGraph(ActivatedPoint& ap)
-{
-    resetTraversed();
-    std::list< State* > stack;
-    stack.push_back(getState(0));
-    while (!stack.empty()) {
-        State* cur = stack.back();
-        if (cur->tit == cur->transitions.end() || stack.size() - 1 > ap.state->layer) {
-            cur->tit = cur->transitions.begin();
-            stack.pop_back();
-        } else {
-            if (*cur->tit == ap.transition1)
-                break;
-            stack.push_back((*cur->tit)->nState);
-            cur->tit++;
-        }
-    }
-    if (!stack.empty()) {
-        output << "!!!!!!!!!!!!!!!!!!\n";
-    }
-}
-
 void InputSequenceGenerator::recursiveDFS()
 {
     State* cur = recPath.back();
