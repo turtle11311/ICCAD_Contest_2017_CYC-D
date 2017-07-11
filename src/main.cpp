@@ -1,19 +1,15 @@
 #include "InputSequenceGenerator.hpp"
-#include <boost/filesystem.hpp>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
 #include <getopt.h>
-#include <iomanip>
 #include <iostream>
 #include <list>
 #include <map>
 #include <string>
 #include <vector>
-
-namespace fs = boost::filesystem;
 
 using namespace SVParser;
 using std::cout;
@@ -22,8 +18,6 @@ using std::endl;
 extern FILE* yyin;
 
 std::ofstream output;
-fs::path caseDir;
-fs::path debuginfoDir;
 
 int assertionID = 0;
 
@@ -71,10 +65,6 @@ void parseArgAndInitial(int argc, char* argv[])
             break;
         case 'o':
             output.open(optarg, std::ios::out);
-            caseDir = fs::absolute(optarg).parent_path();
-#ifdef DEBUG
-            cout << "Creating debug directory is " << std::boolalpha << fs::create_directory(caseDir.append("asrt")) << endl;
-#endif
             break;
         case 't':
             assertionID = atoi(optarg);

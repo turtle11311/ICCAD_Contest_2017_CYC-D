@@ -1,14 +1,9 @@
 #include "InputSequenceGenerator.hpp"
 #include <algorithm>
-#include <boost/filesystem.hpp>
 #include <fstream>
 #include <map>
 #include <queue>
-
-namespace fs = boost::filesystem;
-
 extern std::ofstream output;
-extern fs::path caseDir;
 
 namespace SVParser {
 

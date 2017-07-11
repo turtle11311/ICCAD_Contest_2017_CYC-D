@@ -1,19 +1,16 @@
 MAKE = make
 CXX = g++
-CXXFLAGS += -Isrc/ --std=c++11 -g
+CXXFLAGS += -Isrc/ --std=c++0x -g
 LEX = flex
 YACC = bison
-BUILDDIR ?= build
-VPATH = src:$(BUILDDIR)
-OBJS = main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o InputSequenceGenerator.o
+VPATH = src/
 BINARY = sequence_generator
-DEBUG_BIN = bugcry
 CASE ?= tb1
 CASEDIR = test_cases/$(CASE)
 SERVER = cadb036@140.110.214.97
 REMOTEDIR = cadb2
 
-.PHONY: all clean test simulation output deploy findbug binary
+.PHONY: all clean test simulation output deploy
 
 
 all: $(BINARY)
@@ -35,27 +32,17 @@ deploy: $(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
 	scp -r test_cases/ $(BINARY) Makefile $(SERVER):~/$(REMOTEDIR)
 
-binary: $(BINARY)
-
-findbug:
-	$(eval CXXFLAGS += -DDEBUG)
-	make binary BINARY=$(DEBUG_BIN) CXXFLAGS="$(CXXFLAGS)" BUILDDIR=debug
-	./$(DEBUG_BIN) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
-
-$(BUILDDIR)/%.o: src/%.cpp $(BUILDDIR)
+%.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
-$(BINARY): $(foreach obj, $(OBJS), $(BUILDDIR)/$(obj))
-	$(CXX) $(CXXFLAGS) $^ -static -lboost_system -lboost_filesystem -o $@
+$(BINARY): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o InputSequenceGenerator.o
+	$(CXX) $(CXXFLAGS) $^ -static -o $@
 
-$(BUILDDIR)/SVParser.lex.cpp: SVParser.l SVParser.y
+SVParser.lex.cpp: SVParser.l SVParser.y
 	$(LEX) -t $< > $@
 
-$(BUILDDIR)/SVParser.tab.cpp: SVParser.y
+SVParser.tab.cpp: SVParser.y
 	$(YACC) -d -o $@ $<
 
-$(BUILDDIR):
-	mkdir $(BUILDDIR)
-
 clean:
-	$(RM) *.o *.lex.* $(BINARY) $(DEBUG_BIN) *.tab.* build/ debug/ -rf
+	$(RM) *.o *.lex.* $(BINARY) *.tab.*
