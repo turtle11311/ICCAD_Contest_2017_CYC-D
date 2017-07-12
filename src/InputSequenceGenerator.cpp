@@ -33,7 +33,7 @@ void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
     asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
-        return lhs.time.second < rhs.time.second;
+        return lhs.time.second > rhs.time.second;
     });
     for (Assertion& asrt : asrtList) {
         cout << asrt.name << ": " << endl;
