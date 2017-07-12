@@ -10,7 +10,7 @@ CASEDIR = test_cases/$(CASE)
 SERVER = cadb036@140.110.214.97
 REMOTEDIR = cadb2
 
-.PHONY: all clean test simulation output deploy
+.PHONY: all clean test simulation output deploy info
 
 
 all: $(BINARY)
@@ -27,6 +27,9 @@ simv: fsm.v test.v
 
 output:
 	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
+
+info:
+	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
 
 deploy: $(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
