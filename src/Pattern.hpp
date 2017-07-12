@@ -23,5 +23,6 @@ public:
     Pattern(const std::string& str);
     const Pattern& operator=(const Pattern& rhs);
     bool operator==(const Pattern& rhs);
+    Pattern defaultPattern();
 };
 } // namespace SVParser

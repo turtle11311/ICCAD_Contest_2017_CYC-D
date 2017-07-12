@@ -49,11 +49,7 @@ const Transition& Transition::operator=(const Transition& rhs)
 
 Pattern Transition::defaultPattern()
 {
-    Pattern res = pattern;
-    for (int i = 0; i < res.size(); ++i)
-        if (res[i] == 2)
-            res[i] = 0;
-    return res;
+    return pattern.defaultPattern();
 }
 
 std::ostream& operator<<(std::ostream& os, const Transition& transition)
