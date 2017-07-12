@@ -1,5 +1,6 @@
 #include "InputSequenceGenerator.hpp"
 #include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <map>
 #include <queue>
@@ -9,7 +10,6 @@ namespace SVParser {
 
 InputSequenceGenerator::InputSequenceGenerator()
     : _Base()
-    , found(false)
 {
     ::yyparse(*this);
     current = getState(0);
@@ -74,36 +74,24 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         }
     }
     cout << "Assertion " << (res ? "Fail" : "QAQ") << endl;
-    Pattern tmpp = targetAP.pattern2;
-    for (int i = 0; i < tmpp.size(); ++i) {
-        if (tmpp[i] == 2)
-            tmpp[i] = 0;
-    }
-
-    answerDict[&asrt].pop_front();
-    answerDict[&asrt].push_front(tmpp);
 
     if (res) {
-        recPath.push_back(getState(0));
-        recursiveDFS();
-        recPath.pop_front();
-        for (Transition* trans : (*this)[0]->transitions) {
-            if (trans->nState == recPath.front())
-                firstHalfAnswer.push_front(trans->defaultPattern());
-        }
+        answerDict[&asrt].pop_front();
+        answerDict[&asrt].push_front(targetAP.pattern2.defaultPattern());
+        cout << "=====================================" << endl;
+        initial2ActivatedArc();
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
         name = asrt.name;
         assertionInspector(answerDict[&asrt]);
     }
-    recPath.clear();
     firstHalfAnswer.clear();
 }
 
 bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step)
 {
-    cout << *t2 << endl;
+    cout << current->label << " " << *t2 << endl;
     sequence.push_back(t2->defaultPattern());
     if (step > asrt.time.second) {
         asrt.failed = true;
@@ -274,7 +262,7 @@ void InputSequenceGenerator::staticFindOutputSignalActivatedPoint(bool trigger, 
             if (trans1->out[index] == !trigger) {
                 for (Transition* trans2 : getState(trans1->nState->label)->transitions) {
                     if (trans2->out[index] == trigger) {
-                        APList.push_back(ActivatedPoint({ getState(state.second->label), trans1->pattern, trans2->pattern, trans1, trans2 }));
+                        APList.push_back(ActivatedPoint(trans1->nState, trans1->pattern, trans2->pattern, trans1, trans2));
                     }
                 }
             }
@@ -300,9 +288,37 @@ void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, u
                     else
                         continue;
                     if (trans2->pattern == expectedPattern2) {
-                        APList.push_back(ActivatedPoint({ getState(state.second->label), expectedPattern1, expectedPattern2, trans1, trans2 }));
+                        APList.push_back(ActivatedPoint(trans1->nState, expectedPattern1, expectedPattern2, trans1, trans2));
                     }
                 }
+            }
+        }
+    }
+}
+
+void InputSequenceGenerator::initial2ActivatedArc()
+{
+    firstHalfAnswer.clear();
+    resetTraversed();
+    State* current = nullptr;
+    for (State::From& from : targetAP.state->fromList) {
+        cout << from.state->label << " " << *from.transition << endl
+             << targetAP.state->label << " " << *targetAP.transition1 << endl
+             << endl;
+        if (from.transition == targetAP.transition1) {
+            current = from.state;
+            break;
+        }
+    }
+    firstHalfAnswer.push_front(targetAP.pattern1.defaultPattern());
+    assert(current != nullptr);
+    current->traversed = true;
+    while (current->layer != 0) {
+        for (State::From& from : current->fromList) {
+            if (!from.state->traversed && (from.state->layer < current->layer)) {
+                current = from.state;
+                firstHalfAnswer.push_front(from.transition->defaultPattern());
+                break;
             }
         }
     }
@@ -317,10 +333,8 @@ void InputSequenceGenerator::outputNthAssertion(int n)
         std::ofstream file(asrt.name + ".txt");
         output << 0 << Pattern(PATTERNSIZE) << endl;
         output << 1 << Pattern(PATTERNSIZE) << endl;
-        output << 0 << Pattern(PATTERNSIZE) << endl;
         file << 0 << Pattern(PATTERNSIZE) << endl;
         file << 1 << Pattern(PATTERNSIZE) << endl;
-        file << 0 << Pattern(PATTERNSIZE) << endl;
         for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
             output << 0 << *iit << endl;
             file << 0 << *iit << endl;

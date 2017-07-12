@@ -54,6 +54,8 @@ Pattern Transition::defaultPattern()
 
 std::ostream& operator<<(std::ostream& os, const Transition& transition)
 {
-    return os << "Match: " << transition.pattern << " then go to State=>" << transition.nState->label << " output: " << transition.out;
+    const Pattern &match = transition.pattern,
+                  &out = transition.out;
+    return os << match << ": begin nstate=S" << transition.nState->label << "; out=" << out << "; end";
 }
 } // namespace SVParser

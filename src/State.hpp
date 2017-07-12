@@ -21,7 +21,6 @@ public:
 
     const int label;
     std::vector< Transition* > transitions;
-    std::vector< Transition* >::iterator tit;
     std::vector< From > fromList;
     int layer;
     bool traversed;

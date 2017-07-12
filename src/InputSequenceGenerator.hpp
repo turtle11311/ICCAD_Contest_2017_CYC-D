@@ -35,6 +35,7 @@ public:
     void outputNthAssertion(int n);
 
 private:
+    void initial2ActivatedArc();
     void evalInitial2State();
     void assertionInspector(InputSequence& seq);
     void staticFindOutputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
@@ -44,16 +45,13 @@ private:
     void findOutputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
     void findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
     void purgeState(int state);
-    void recursiveDFS();
     InputSequence answer;
     std::map< Assertion*, InputSequence > answerDict;
     std::list< Assertion > asrtList;
     std::list< ActivatedPoint > path;
     bool asrtFailedFlag = false;
-    std::list< State* > recPath;
     ActivatedPoint targetAP;
     InputSequence firstHalfAnswer;
     std::list< AssertionStatus > triggeredAssertion;
-    bool found;
 };
 } // namespace SVParser

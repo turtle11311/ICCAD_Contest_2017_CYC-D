@@ -34,6 +34,7 @@ info:
 deploy: $(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
 	scp -r test_cases/ $(BINARY) Makefile $(SERVER):~/$(REMOTEDIR)
+	ssh $(SERVER)
 
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
