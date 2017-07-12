@@ -68,11 +68,21 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
             res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition1->nState, ap.transition1, ap.transition2, 0);
             if (res) {
                 targetAP = ap;
+                targetAP.printAP();
                 break;
             }
         }
     }
     cout << "Assertion " << (res ? "Fail" : "QAQ") << endl;
+    Pattern tmpp = targetAP.pattern2;
+    for (int i = 0; i < tmpp.size(); ++i) {
+        if (tmpp[i] == 2)
+            tmpp[i] = 0;
+    }
+
+    answerDict[&asrt].pop_front();
+    answerDict[&asrt].push_front(tmpp);
+
     if (res) {
         recPath.push_back(getState(0));
         recursiveDFS();
@@ -185,6 +195,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 continue;
             if (as->slack > asrt.time.second) {
                 cout << asrt.name << " Fail!!!" << endl;
+                cout << asrt.time.second << " " << as->slack << endl;
                 asrt.failed = true;
             } else if (as->slack >= asrt.time.first) {
                 size_t index = asrt.event.index;
@@ -200,6 +211,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
         }
         ++tc;
     }
+    triggeredAssertion.clear();
     ff.close();
 }
 
@@ -385,8 +397,10 @@ void InputSequenceGenerator::outputNthAssertion(int n)
         std::ofstream file(asrt.name + ".txt");
         output << 0 << Pattern(PATTERNSIZE) << endl;
         output << 1 << Pattern(PATTERNSIZE) << endl;
+        output << 0 << Pattern(PATTERNSIZE) << endl;
         file << 0 << Pattern(PATTERNSIZE) << endl;
         file << 1 << Pattern(PATTERNSIZE) << endl;
+        file << 0 << Pattern(PATTERNSIZE) << endl;
         for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
             output << 0 << *iit << endl;
             file << 0 << *iit << endl;
