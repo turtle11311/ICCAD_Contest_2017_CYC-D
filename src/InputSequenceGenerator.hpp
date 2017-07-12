@@ -42,9 +42,7 @@ private:
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
     bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step);
     void findOutputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
-    void recursiveTraverseOS(std::list< ActivatedPoint > stack, bool triggerFlag, unsigned int index, unsigned int cycle);
     void findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
-    void usingDijkstraForNonWeightedGraph(ActivatedPoint& ap);
     void purgeState(int state);
     void recursiveDFS();
     InputSequence answer;

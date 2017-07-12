@@ -215,88 +215,8 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     ff.close();
 }
 
-void InputSequenceGenerator::recursiveTraverseOS(std::list< ActivatedPoint > stack, bool triggerFlag, unsigned int index, unsigned int cycle)
-{
-    if (asrtFailedFlag)
-        return;
-    if (!cycle) {
-        asrtFailedFlag = true;
-        stack.pop_front();
-        for (auto it = stack.begin(); it != stack.end(); ++it) {
-            path.push_back(*it);
-        }
-        return;
-    }
-    Pattern out = stack.back().transition2->out;
-    State* nState = stack.back().transition2->nState;
-    for (auto it = nState->transitions.begin(); it != nState->transitions.end(); ++it) {
-        if (out[index] == !triggerFlag && (*it)->out[index] == !triggerFlag) {
-            stack.push_back(
-                ActivatedPoint({ nState,
-                    stack.back().pattern2,
-                    (*it)->pattern,
-                    stack.back().transition2,
-                    *it }));
-            recursiveTraverseOS(stack, triggerFlag, index, cycle - 1);
-        } else if (out[index] == triggerFlag) {
-            stack.push_back(
-                ActivatedPoint({ nState,
-                    stack.back().pattern2,
-                    (*it)->pattern,
-                    stack.back().transition2,
-                    *it }));
-            recursiveTraverseOS(stack, triggerFlag, index, cycle - 1);
-        }
-    }
-}
-
 void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
 {
-}
-
-void InputSequenceGenerator::usingDijkstraForNonWeightedGraph(ActivatedPoint& ap)
-{
-    resetTraversed();
-    std::list< State* > stack;
-    stack.push_back(getState(0));
-    while (!stack.empty()) {
-        State* cur = stack.back();
-        if (cur->tit == cur->transitions.end() || stack.size() - 1 > ap.state->layer) {
-            cur->tit = cur->transitions.begin();
-            stack.pop_back();
-        } else {
-            if (*cur->tit == ap.transition1)
-                break;
-            stack.push_back((*cur->tit)->nState);
-            cur->tit++;
-        }
-    }
-    if (!stack.empty()) {
-        output << "!!!!!!!!!!!!!!!!!!\n";
-    }
-}
-
-void InputSequenceGenerator::recursiveDFS()
-{
-    State* cur = recPath.back();
-    for (auto it = cur->transitions.begin(); it != cur->transitions.end(); ++it) {
-        if (found)
-            return;
-        if (*it == targetAP.transition1) {
-            firstHalfAnswer.push_back(targetAP.transition1->defaultPattern());
-            found = true;
-            return;
-        }
-        if (recPath.size() - 1 < targetAP.state->layer) {
-            recPath.push_back((*it)->nState);
-            firstHalfAnswer.push_back((*it)->defaultPattern());
-            recursiveDFS();
-        }
-    }
-    if (found)
-        return;
-    firstHalfAnswer.pop_back();
-    recPath.pop_back();
 }
 
 void InputSequenceGenerator::printPath()
