@@ -8,7 +8,7 @@ BINARY = sequence_generator
 CASE ?= tb1
 CASEDIR = test_cases/$(CASE)
 SERVER = cadb036@140.110.214.97
-REMOTEDIR = cadb2
+REMOTEDIR = lichen
 
 .PHONY: all clean test simulation output deploy info
 
@@ -28,7 +28,7 @@ simv: fsm.v test.v
 output:
 	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
 
-info:
+info: $(BINARY)
 	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
 
 deploy: $(BINARY)
@@ -49,4 +49,4 @@ SVParser.tab.cpp: SVParser.y
 	$(YACC) -d -o $@ $<
 
 clean:
-	$(RM) *.o *.lex.* $(BINARY) *.tab.*
+	$(RM) *.o *.lex.* $(BINARY) *.tab.* assertion_*
