@@ -4,8 +4,8 @@
 #include <fstream>
 #include <map>
 #include <queue>
+#include <sstream>
 extern std::ofstream output;
-
 namespace SVParser {
 
 InputSequenceGenerator::InputSequenceGenerator()
@@ -47,6 +47,11 @@ void InputSequenceGenerator::simulator()
 }
 
 std::string name;
+std::string tmps;
+
+std::stringstream ss;
+std::list<std::string> PATH;
+
 
 void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
@@ -65,15 +70,22 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition1->nState, ap.transition1, ap.transition2, 0);
+            ss.clear();
+            ss.str("");
+            PATH.clear();
+            answerDict[&asrt].clear();
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.state, ap.transition1, ap.transition2, 1);
             if (res) {
+                for (auto it = PATH.begin(); it != PATH.end(); ++it) {
+                    cout << *it << endl;
+                }
                 targetAP = ap;
                 targetAP.printAP();
                 break;
             }
         }
     }
-    cout << "Assertion " << (res ? "Fail" : "QAQ") << endl;
+    cout << (res ? asrt.name +" Fail" : " QAQ") << endl;
 
     if (res) {
         answerDict[&asrt].pop_front();
@@ -91,7 +103,9 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 
 bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step)
 {
-    cout << current->label << " " << *t2 << endl;
+    ss << current->label << " " << *t2 << endl;
+    getline(ss, tmps);
+    PATH.emplace_back(tmps);
     sequence.push_back(t2->defaultPattern());
     if (step > asrt.time.second) {
         asrt.failed = true;
@@ -108,15 +122,18 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
             outcome = true;
         }
         if (income && outcome) {
+            PATH.pop_back();
             sequence.pop_back();
             return false;
         }
     }
+    current = t2->nState;
     for (auto trans = current->transitions.begin(); trans != current->transitions.end(); ++trans) {
-        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, sequence, (*trans)->nState, t2, *trans, step + 1);
+        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, sequence, current, t2, *trans, step + 1);
         if (res == true)
             return true;
     }
+    PATH.pop_back();
     sequence.pop_back();
     return false;
 }
@@ -302,14 +319,12 @@ void InputSequenceGenerator::initial2ActivatedArc()
     resetTraversed();
     State* current = nullptr;
     for (State::From& from : targetAP.state->fromList) {
-        cout << from.state->label << " " << *from.transition << endl
-             << targetAP.state->label << " " << *targetAP.transition1 << endl
-             << endl;
         if (from.transition == targetAP.transition1) {
             current = from.state;
             break;
         }
     }
+    cout << "Layer: " << current->layer << " " << current->label << " " << *targetAP.transition1 << endl;
     firstHalfAnswer.push_front(targetAP.pattern1.defaultPattern());
     assert(current != nullptr);
     current->traversed = true;
@@ -317,11 +332,14 @@ void InputSequenceGenerator::initial2ActivatedArc()
         for (State::From& from : current->fromList) {
             if (!from.state->traversed && (from.state->layer < current->layer)) {
                 current = from.state;
+                cout << "Layer: " << current->layer << " " << current->label << " " << *from.transition << endl;
                 firstHalfAnswer.push_front(from.transition->defaultPattern());
+                
                 break;
             }
         }
     }
+    if ( current->label == 0 ) cout << "WTF\n";
 }
 
 void InputSequenceGenerator::outputNthAssertion(int n)
@@ -330,6 +348,7 @@ void InputSequenceGenerator::outputNthAssertion(int n)
         InputSequence& answer = answerDict[&asrt];
         if (answer.size() == 0)
             continue;
+        cout << asrt.name << endl;
         std::ofstream file(asrt.name + ".txt");
         output << 0 << Pattern(PATTERNSIZE) << endl;
         output << 1 << Pattern(PATTERNSIZE) << endl;
