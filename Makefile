@@ -28,7 +28,7 @@ simv: fsm.v test.v
 output:
 	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
 
-info:
+info: $(BINARY)
 	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
 
 deploy: $(BINARY)
