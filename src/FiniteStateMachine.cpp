@@ -15,9 +15,6 @@ void FiniteStateMachine::insesrtTransition(int state, Pattern&& pattern, int nSt
     State *nowState = getState(state), *nextState = getState(nState);
     nowState->transitions.push_back(
         new Transition(std::move(pattern), nextState, std::move(out)));
-    //if (state == nState) {
-    //    std::swap(nowState->transitions.front(), nowState->transitions.back());
-    //}
 
     nextState->fromList.push_back(
         State::From(nowState, nowState->transitions.back()));
