@@ -1,6 +1,7 @@
 #include "InputSequenceGenerator.hpp"
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <map>
 #include <queue>
@@ -32,9 +33,16 @@ void InputSequenceGenerator::preprocess()
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
+
+    srand(time(NULL));
+    // asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
+    //     return lhs.time.second > rhs.time.second;
+    // });
+
     asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
-        return lhs.time.second > rhs.time.second;
+        return rand() > rand();
     });
+
     for (Assertion& asrt : asrtList) {
         cout << asrt.name << ": " << endl;
         path.clear();
