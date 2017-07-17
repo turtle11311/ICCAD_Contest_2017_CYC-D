@@ -29,8 +29,6 @@ public:
     void simulator();
     void preprocess();
     void staticFindActivatedPoint(Assertion& asrt);
-    void printPath();
-    void convertPath2InputSequence();
     void printInputSequence();
     void outputNthAssertion(int n);
 
@@ -42,8 +40,6 @@ private:
     void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
     bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step);
-    void findOutputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
-    void findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
     void purgeState(int state);
     InputSequence answer;
     std::map< Assertion*, InputSequence > answerDict;

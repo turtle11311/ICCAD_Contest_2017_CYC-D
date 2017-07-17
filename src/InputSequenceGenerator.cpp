@@ -138,36 +138,6 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
     return false;
 }
 
-void InputSequenceGenerator::findOutputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
-{
-    path = std::list< ActivatedPoint >(1, ap);
-    unsigned int start = range.first - 1;
-    bool selfCycle = false;
-    Transition* SCT; // self cycle Transition
-    State* nState = ap.state;
-    for (auto it = nState->transitions.begin(); it != nState->transitions.end(); ++it) {
-        if ((*it)->nState == nState) {
-            selfCycle = true;
-            SCT = *it;
-            break;
-        }
-    }
-    if (selfCycle) {
-        for (int i = 0; i < start; ++i)
-            path.push_back(ActivatedPoint({ nState, SCT->pattern, SCT->pattern, SCT, SCT }));
-    } else {
-        for (int i = 0; i < start; ++i) {
-            path.push_back(
-                ActivatedPoint({ nState,
-                    ap.pattern2,
-                    nState->transitions.front()->pattern,
-                    ap.transition2,
-                    nState->transitions.front() }));
-            nState = nState->transitions.front()->nState;
-        }
-    }
-}
-
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
     std::ofstream ff(name + ".out");
@@ -220,21 +190,6 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     ff.close();
 }
 
-void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
-{
-}
-
-void InputSequenceGenerator::printPath()
-{
-    cout << "Path: " << endl;
-    for (auto it = path.begin(); it != path.end(); ++it) {
-        cout << it->pattern1 << " -> S" << it->state->label << " -> " << it->transition1->out;
-        cout << " => ";
-        cout << it->pattern2 << " -> S" << it->transition1->nState->label << " -> " << it->transition2->out << endl;
-        cout << "|" << endl;
-    }
-}
-
 void InputSequenceGenerator::evalInitial2State()
 {
     std::queue< State* > bfsQueue;
@@ -264,8 +219,6 @@ void InputSequenceGenerator::staticFindActivatedPoint(Assertion& asrt)
     bool signalFlag = asrt.trigger.target == TargetType::OUT ? true : false;
     bool trigger = asrt.trigger.change == SignalEdge::ROSE ? true : false;
     unsigned int index = asrt.trigger.index;
-    // cout << "Activated target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
-    //      << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
     if (signalFlag)
         staticFindOutputSignalActivatedPoint(trigger, index, asrt.APList);
     else
@@ -334,7 +287,7 @@ void InputSequenceGenerator::initial2ActivatedArc()
                 current = from.state;
                 cout << "Layer: " << current->layer << " " << current->label << " " << *from.transition << endl;
                 firstHalfAnswer.push_front(from.transition->defaultPattern());
-                
+
                 break;
             }
         }
@@ -360,14 +313,6 @@ void InputSequenceGenerator::outputNthAssertion(int n)
         }
         file.close();
     }
-}
-
-void InputSequenceGenerator::convertPath2InputSequence()
-{
-    auto it = path.begin();
-    answer.push_back(it->transition1->defaultPattern());
-    for (; it != path.end(); ++it)
-        answer.push_back(it->transition2->defaultPattern());
 }
 
 void InputSequenceGenerator::printInputSequence()
