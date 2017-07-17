@@ -342,7 +342,7 @@ void InputSequenceGenerator::initial2ActivatedArc()
     if ( current->label == 0 ) cout << "WTF\n";
 }
 
-void InputSequenceGenerator::outputNthAssertion(int n)
+void InputSequenceGenerator::outputAnswer()
 {
     for (Assertion& asrt : asrtList) {
         InputSequence& answer = answerDict[&asrt];
