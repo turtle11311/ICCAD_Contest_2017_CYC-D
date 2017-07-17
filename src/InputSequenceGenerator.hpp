@@ -32,7 +32,7 @@ public:
     void printPath();
     void convertPath2InputSequence();
     void printInputSequence();
-    void outputNthAssertion(int n);
+    void outputAnswer();
 
 private:
     void initial2ActivatedArc();
