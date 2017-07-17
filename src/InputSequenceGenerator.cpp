@@ -209,7 +209,7 @@ void InputSequenceGenerator::assertionInspectorVersion2()
         ++index;
         if (rstTemp.front() == index) {
             rstTemp.pop_front();
-            continue;
+            current = getState(0);
         }
         this->input(*it);
         ff << out2 << endl;
