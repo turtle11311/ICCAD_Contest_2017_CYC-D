@@ -50,8 +50,7 @@ std::string name;
 std::string tmps;
 
 std::stringstream ss;
-std::list<std::string> PATH;
-
+std::list< std::string > PATH;
 
 void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
@@ -85,9 +84,10 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
             }
         }
     }
-    cout << (res ? asrt.name +" Fail" : " QAQ") << endl;
+    cout << (res ? asrt.name + " Fail" : " QAQ") << endl;
 
     if (res) {
+        asrt.failed = true;
         answerDict[&asrt].pop_front();
         answerDict[&asrt].push_front(targetAP.pattern2.defaultPattern());
         cout << "=====================================" << endl;
@@ -170,7 +170,9 @@ void InputSequenceGenerator::findOutputSignalTermiateStartPoint(bool triggerFlag
 
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
+    current = getState(0);
     std::ofstream ff(name + ".out");
+    std::ofstream coverage(name + ".coverage");
     ff << endl
        << endl;
     in2 = Pattern(inputSize());
@@ -201,7 +203,8 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             if (as->slack > asrt.time.second) {
                 cout << asrt.name << " Fail!!!" << endl;
                 cout << asrt.time.second << " " << as->slack << endl;
-                asrt.failed = true;
+                //asrt.failed = true;
+                coverage << asrt.name << endl;
             } else if (as->slack >= asrt.time.first) {
                 size_t index = asrt.event.index;
                 bool triggerFlag = (asrt.event.change == SignalEdge::ROSE);
@@ -218,6 +221,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     }
     triggeredAssertion.clear();
     ff.close();
+    coverage.close();
 }
 
 void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
@@ -334,12 +338,13 @@ void InputSequenceGenerator::initial2ActivatedArc()
                 current = from.state;
                 cout << "Layer: " << current->layer << " " << current->label << " " << *from.transition << endl;
                 firstHalfAnswer.push_front(from.transition->defaultPattern());
-                
+
                 break;
             }
         }
     }
-    if ( current->label == 0 ) cout << "WTF\n";
+    if (current->label == 0)
+        cout << "WTF\n";
 }
 
 void InputSequenceGenerator::outputAnswer()
