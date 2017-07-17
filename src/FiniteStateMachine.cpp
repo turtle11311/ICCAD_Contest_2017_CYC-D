@@ -15,9 +15,6 @@ void FiniteStateMachine::insesrtTransition(int state, Pattern&& pattern, int nSt
     State *nowState = getState(state), *nextState = getState(nState);
     nowState->transitions.push_back(
         new Transition(std::move(pattern), nextState, std::move(out)));
-    if (state == nState) {
-        std::swap(nowState->transitions.front(), nowState->transitions.back());
-    }
 
     nextState->fromList.push_back(
         State::From(nowState, nowState->transitions.back()));
@@ -30,6 +27,20 @@ State* FiniteStateMachine::getState(int state)
         return it->second;
     }
     return ((*this)[state] = new State(state));
+}
+
+void FiniteStateMachine::input(const Pattern& pattern)
+{
+    in1 = in2;
+    out1 = out2;
+    in2 = pattern;
+    for (Transition* trans : current->transitions) {
+        if (trans->pattern == pattern) {
+            current = trans->nState;
+            out2 = trans->out;
+            break;
+        }
+    }
 }
 
 FiniteStateMachine::~FiniteStateMachine()
@@ -59,7 +70,6 @@ void FiniteStateMachine::resetTraversed()
 {
     for (auto& state : (*this)) {
         state.second->traversed = false;
-        state.second->tit = state.second->transitions.begin();
     }
 }
 } // namespace SVParser

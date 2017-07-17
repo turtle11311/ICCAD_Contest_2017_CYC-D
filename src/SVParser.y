@@ -22,6 +22,7 @@ int yyerror(SVParser::InputSequenceGenerator& FSM, const char* text) {
 // Variable
 std::vector<std::string*> nameList;
 std::map<std::string, unsigned int> paraTable;
+Assertion asrt;
 
 int nowState = -1;
 %}
@@ -65,7 +66,7 @@ int nowState = -1;
 %token <string> BIN_INTEGER
 %token <string> DEC_INTEGER
 %token <string> IDENTIFIER
-%token <pattern> BIT_LABEL
+%token <string> BIT_LABEL
 
 %type <signal_edge> signal_change_identifier
 %type <string> assertion_identifier
@@ -75,6 +76,7 @@ int nowState = -1;
 %type <integer> number
 %type <range> range
 %type <pattern> bit_pattern
+%type <pattern> match_pattern
 %type <sig_ch> signal_change
 
 %nonassoc LOWER_THAN_ELSE
@@ -217,10 +219,21 @@ casex_list
         ;
 
 casex
-        : BIT_LABEL ':' "begin" port_identifier '=' parameter ';'
+        : match_pattern ':' "begin" port_identifier '=' parameter ';'
           port_identifier '=' bit_pattern ';' "end"
         {
             FSM.insesrtTransition(nowState, std::move(*$1), $6, std::move(*$10));
+        }
+        ;
+
+match_pattern
+        : BIT_LABEL
+        {
+            $$ = new Pattern(*$1);
+        }
+        | BIN_INTEGER
+        {
+            $$ = new Pattern(*$1);
         }
         ;
 
@@ -237,6 +250,10 @@ bit_pattern
 
 assertion_rule
         : assertion_identifier ':' assertion_property_statement
+        {
+            asrt.name = *$1;
+            FSM.asrtList.push_back(asrt);
+        }
         ;
 
 assertion_property_statement
@@ -246,11 +263,9 @@ assertion_property_statement
 property_block
         : '@' '(' event_expression ')' signal_change '|' '-' '>' '#' '#' range signal_change
         {
-            Assertion asrt;
             asrt.trigger = $5;
             asrt.event = $12;
             asrt.time = *$11;
-            FSM.asrtList.push_back(asrt);
         }
         ;
 

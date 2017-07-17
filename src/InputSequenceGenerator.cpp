@@ -1,17 +1,18 @@
 #include "InputSequenceGenerator.hpp"
 #include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <map>
 #include <queue>
+#include <sstream>
 extern std::ofstream output;
-
 namespace SVParser {
 
 InputSequenceGenerator::InputSequenceGenerator()
     : _Base()
-    , found(false)
 {
     ::yyparse(*this);
+    current = getState(0);
 }
 
 void InputSequenceGenerator::preprocess()
@@ -31,16 +32,26 @@ void InputSequenceGenerator::preprocess()
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
-    int count = 0;
+    asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
+        return lhs.time.second > rhs.time.second;
+    });
     for (Assertion& asrt : asrtList) {
-        cout << "Assertion: " << ++count << endl;
+        cout << asrt.name << ": " << endl;
         path.clear();
         asrtFailedFlag = false;
-        fromActivatedPoint2AssertionFailed(asrt);
+        if (!asrt.failed)
+            fromActivatedPoint2AssertionFailed(asrt);
         cout << endl
              << endl;
     }
 }
+
+std::string name;
+std::string tmps;
+
+std::stringstream ss;
+std::list<std::string> PATH;
+
 
 void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
@@ -59,62 +70,70 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.transition2->nState, ap.transition2, 0);
+            ss.clear();
+            ss.str("");
+            PATH.clear();
+            answerDict[&asrt].clear();
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.state, ap.transition1, ap.transition2, 1);
             if (res) {
+                for (auto it = PATH.begin(); it != PATH.end(); ++it) {
+                    cout << *it << endl;
+                }
                 targetAP = ap;
+                targetAP.printAP();
                 break;
             }
         }
     }
-    cout << "Assertion " << (res ? "Fail" : "Success") << endl;
+    cout << (res ? asrt.name +" Fail" : " QAQ") << endl;
+
     if (res) {
-        recPath.push_back(getState(0));
-        recursiveDFS();
-        recPath.pop_front();
-        for (Transition* trans : (*this)[0]->transitions) {
-            if (trans->nState == recPath.front())
-                firstHalfAnswer.push_front(trans->defaultPattern());
-        }
+        answerDict[&asrt].pop_front();
+        answerDict[&asrt].push_front(targetAP.pattern2.defaultPattern());
+        cout << "=====================================" << endl;
+        initial2ActivatedArc();
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
+        name = asrt.name;
+        assertionInspector(answerDict[&asrt]);
     }
-    recPath.clear();
     firstHalfAnswer.clear();
 }
 
-bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t2, size_t step)
+bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step)
 {
+    ss << current->label << " " << *t2 << endl;
+    getline(ss, tmps);
+    PATH.emplace_back(tmps);
     sequence.push_back(t2->defaultPattern());
-    if (step == asrt.time.second) {
-        sequence.pop_back();
-        return false;
+    if (step > asrt.time.second) {
+        asrt.failed = true;
+        return true;
     }
-    if (step >= asrt.time.first) {
+    if (step > asrt.time.first) {
         bool income = false, outcome = false;
         size_t index = asrt.event.index;
-        for (State::From& from : current->fromList) {
-            if (from.transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 0 : 1)) {
-                income = true;
-                break;
-            }
+
+        if (t1->out[index] == (asrt.event.change == SignalEdge::FELL ? 1 : 0)) {
+            income = true;
         }
-        for (Transition* transition : current->transitions) {
-            if (transition->out[index] == (asrt.event.change == SignalEdge::FELL ? 1 : 0)) {
-                outcome = true;
-                break;
-            }
+        if (t2->out[index] == (asrt.event.change == SignalEdge::FELL ? 0 : 1)) {
+            outcome = true;
         }
         if (income && outcome) {
-            cout << step << endl;
-            return true;
+            PATH.pop_back();
+            sequence.pop_back();
+            return false;
         }
     }
+    current = t2->nState;
     for (auto trans = current->transitions.begin(); trans != current->transitions.end(); ++trans) {
-        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, sequence, (*trans)->nState, *trans, step + 1);
+        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, sequence, current, t2, *trans, step + 1);
         if (res == true)
             return true;
     }
+    PATH.pop_back();
     sequence.pop_back();
     return false;
 }
@@ -149,88 +168,60 @@ void InputSequenceGenerator::findOutputSignalTermiateStartPoint(bool triggerFlag
     }
 }
 
-void InputSequenceGenerator::recursiveTraverseOS(std::list< ActivatedPoint > stack, bool triggerFlag, unsigned int index, unsigned int cycle)
+void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
-    if (asrtFailedFlag)
-        return;
-    if (!cycle) {
-        asrtFailedFlag = true;
-        stack.pop_front();
-        for (auto it = stack.begin(); it != stack.end(); ++it) {
-            path.push_back(*it);
+    std::ofstream ff(name + ".out");
+    ff << endl
+       << endl;
+    in2 = Pattern(inputSize());
+    out2 = Pattern(inputSize());
+    int tc = 2;
+    for (auto it = seq.begin(); it != seq.end(); ++it) {
+        this->input(*it);
+        ff << out2 << endl;
+        for (Assertion& asrt : asrtList) {
+            if (asrt.failed)
+                continue;
+            size_t index = asrt.trigger.index;
+            bool triggerFlag = (asrt.trigger.change == SignalEdge::ROSE);
+            bool signalFlag = (asrt.trigger.target == TargetType::OUT);
+
+            Pattern pre = (signalFlag ? out1 : in1),
+                    cur = (signalFlag ? out2 : in2);
+            if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
+                triggeredAssertion.push_back(AssertionStatus{ 0, &asrt, false });
+            }
         }
-        return;
-    }
-    Pattern out = stack.back().transition2->out;
-    State* nState = stack.back().transition2->nState;
-    for (auto it = nState->transitions.begin(); it != nState->transitions.end(); ++it) {
-        if (out[index] == !triggerFlag && (*it)->out[index] == !triggerFlag) {
-            stack.push_back(
-                ActivatedPoint({ nState,
-                    stack.back().pattern2,
-                    (*it)->pattern,
-                    stack.back().transition2,
-                    *it }));
-            recursiveTraverseOS(stack, triggerFlag, index, cycle - 1);
-        } else if (out[index] == triggerFlag) {
-            stack.push_back(
-                ActivatedPoint({ nState,
-                    stack.back().pattern2,
-                    (*it)->pattern,
-                    stack.back().transition2,
-                    *it }));
-            recursiveTraverseOS(stack, triggerFlag, index, cycle - 1);
+        for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
+            Assertion& asrt = *as->target;
+            if (as->target->failed)
+                continue;
+            if (as->suc)
+                continue;
+            if (as->slack > asrt.time.second) {
+                cout << asrt.name << " Fail!!!" << endl;
+                cout << asrt.time.second << " " << as->slack << endl;
+                asrt.failed = true;
+            } else if (as->slack >= asrt.time.first) {
+                size_t index = asrt.event.index;
+                bool triggerFlag = (asrt.event.change == SignalEdge::ROSE);
+                bool signalFlag = (asrt.event.target == TargetType::OUT);
+                Pattern pre = (signalFlag ? out1 : in1),
+                        cur = (signalFlag ? out2 : in2);
+                if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
+                    as->suc = true;
+                }
+            }
+            ++(as->slack);
         }
+        ++tc;
     }
+    triggeredAssertion.clear();
+    ff.close();
 }
 
 void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
 {
-}
-
-void InputSequenceGenerator::usingDijkstraForNonWeightedGraph(ActivatedPoint& ap)
-{
-    resetTraversed();
-    std::list< State* > stack;
-    stack.push_back(getState(0));
-    while (!stack.empty()) {
-        State* cur = stack.back();
-        if (cur->tit == cur->transitions.end() || stack.size() - 1 > ap.state->layer) {
-            cur->tit = cur->transitions.begin();
-            stack.pop_back();
-        } else {
-            if (*cur->tit == ap.transition1)
-                break;
-            stack.push_back((*cur->tit)->nState);
-            cur->tit++;
-        }
-    }
-    if (!stack.empty()) {
-        output << "!!!!!!!!!!!!!!!!!!\n";
-    }
-}
-
-void InputSequenceGenerator::recursiveDFS()
-{
-    State* cur = recPath.back();
-    for (auto it = cur->transitions.begin(); it != cur->transitions.end(); ++it) {
-        if (found)
-            return;
-        if (*it == targetAP.transition1) {
-            firstHalfAnswer.push_back(targetAP.transition1->defaultPattern());
-            found = true;
-            return;
-        }
-        if (recPath.size() - 1 < targetAP.state->layer) {
-            recPath.push_back((*it)->nState);
-            firstHalfAnswer.push_back((*it)->defaultPattern());
-            recursiveDFS();
-        }
-    }
-    if (found)
-        return;
-    firstHalfAnswer.pop_back();
-    recPath.pop_back();
 }
 
 void InputSequenceGenerator::printPath()
@@ -288,7 +279,7 @@ void InputSequenceGenerator::staticFindOutputSignalActivatedPoint(bool trigger, 
             if (trans1->out[index] == !trigger) {
                 for (Transition* trans2 : getState(trans1->nState->label)->transitions) {
                     if (trans2->out[index] == trigger) {
-                        APList.push_back(ActivatedPoint({ getState(state.second->label), trans1->pattern, trans2->pattern, trans1, trans2 }));
+                        APList.push_back(ActivatedPoint(trans1->nState, trans1->pattern, trans2->pattern, trans1, trans2));
                     }
                 }
             }
@@ -314,7 +305,7 @@ void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, u
                     else
                         continue;
                     if (trans2->pattern == expectedPattern2) {
-                        APList.push_back(ActivatedPoint({ getState(state.second->label), expectedPattern1, expectedPattern2, trans1, trans2 }));
+                        APList.push_back(ActivatedPoint(trans1->nState, expectedPattern1, expectedPattern2, trans1, trans2));
                     }
                 }
             }
@@ -322,14 +313,52 @@ void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, u
     }
 }
 
+void InputSequenceGenerator::initial2ActivatedArc()
+{
+    firstHalfAnswer.clear();
+    resetTraversed();
+    State* current = nullptr;
+    for (State::From& from : targetAP.state->fromList) {
+        if (from.transition == targetAP.transition1) {
+            current = from.state;
+            break;
+        }
+    }
+    cout << "Layer: " << current->layer << " " << current->label << " " << *targetAP.transition1 << endl;
+    firstHalfAnswer.push_front(targetAP.pattern1.defaultPattern());
+    assert(current != nullptr);
+    current->traversed = true;
+    while (current->layer != 0) {
+        for (State::From& from : current->fromList) {
+            if (!from.state->traversed && (from.state->layer < current->layer)) {
+                current = from.state;
+                cout << "Layer: " << current->layer << " " << current->label << " " << *from.transition << endl;
+                firstHalfAnswer.push_front(from.transition->defaultPattern());
+                
+                break;
+            }
+        }
+    }
+    if ( current->label == 0 ) cout << "WTF\n";
+}
+
 void InputSequenceGenerator::outputNthAssertion(int n)
 {
-    auto ait = std::next(asrtList.begin(), n);
-    InputSequence& answer = answerDict[&(*ait)];
-    output << 0 << Pattern(PATTERNSIZE) << endl;
-    output << 1 << answer.front() << endl;
-    for (auto iit = std::next(answer.begin()); iit != answer.end(); ++iit) {
-        output << 0 << *iit << endl;
+    for (Assertion& asrt : asrtList) {
+        InputSequence& answer = answerDict[&asrt];
+        if (answer.size() == 0)
+            continue;
+        cout << asrt.name << endl;
+        std::ofstream file(asrt.name + ".txt");
+        output << 0 << Pattern(PATTERNSIZE) << endl;
+        output << 1 << Pattern(PATTERNSIZE) << endl;
+        file << 0 << Pattern(PATTERNSIZE) << endl;
+        file << 1 << Pattern(PATTERNSIZE) << endl;
+        for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
+            output << 0 << *iit << endl;
+            file << 0 << *iit << endl;
+        }
+        file.close();
     }
 }
 

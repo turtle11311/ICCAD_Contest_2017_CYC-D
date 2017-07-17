@@ -8,7 +8,6 @@ char tmpc;
 int tmpi;
 
 #define make_string(arg) yylval.string = new std::string((arg));
-#define make_pattern(arg) yylval.pattern = new SVParser::Pattern((arg));
 #define parse_integer() sscanf(yytext, "%d'%c%s", &tmpi , &tmpc, tmps );
 %}
 
@@ -51,7 +50,7 @@ XINT            [01xX]+
 
 {D_INT}'[Bb]{B_INT}     { parse_integer(); make_string(tmps); return BIN_INTEGER; }
 {D_INT}'[Dd]{D_INT}     { parse_integer(); make_string(tmps); return DEC_INTEGER; }
-{D_INT}'[Bb]{XINT}      { parse_integer(); make_pattern(tmps); return BIT_LABEL; }
+{D_INT}'[Bb]{XINT}      { parse_integer(); make_string(tmps); return BIT_LABEL; }
 {D_INT}                 { make_string(yytext); return DEC_INTEGER; }
 {IDENTIFY}              { make_string(yytext); return IDENTIFIER; }
 \".*\"                  return STRING;

@@ -16,11 +16,13 @@ public:
     using _Base::size;
     using _Base::operator[];
     using _Base::operator=;
+    using _Base::push_back;
     Pattern(const size_t size = 0);
     Pattern(const Pattern& rhs);
     Pattern(const char* str);
     Pattern(const std::string& str);
     const Pattern& operator=(const Pattern& rhs);
     bool operator==(const Pattern& rhs);
+    Pattern defaultPattern();
 };
 } // namespace SVParser

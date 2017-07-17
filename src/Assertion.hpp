@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <list>
+#include <string>
 using std::cout;
 using std::endl;
 
@@ -25,6 +26,8 @@ struct SignalChange {
 };
 
 struct ActivatedPoint {
+    ActivatedPoint();
+    ActivatedPoint(State* state, Pattern& pattern1, Pattern& pattern2, Transition* transition1, Transition* transition2);
     State* state;
     Pattern pattern1, pattern2;
     Transition *transition1, *transition2;
@@ -39,6 +42,7 @@ struct ActivatedPoint {
 
 struct Assertion {
 
+    std::string name;
     bool activated;
     bool failed;
     SignalChange trigger;

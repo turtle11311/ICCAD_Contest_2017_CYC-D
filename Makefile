@@ -7,23 +7,34 @@ VPATH = src/
 BINARY = sequence_generator
 CASE ?= tb1
 CASEDIR = test_cases/$(CASE)
+SERVER = cadb036@140.110.214.97
+REMOTEDIR = lichen
 
-.PHONY: all clean test simulation output
+.PHONY: all clean test simulation output deploy info
+
 
 all: $(BINARY)
 
-test: $(BINARY) simulation
+test:
+	$(MAKE) -C $(CASEDIR) --makefile=../../Makefile simulation
 
-simulation: $(CASEDIR)/simv output
+simulation: simv
+	make -C ../../ output CASE=$(CASE)
 	./simv
 
 simv: fsm.v test.v
 	vcs -sverilog fsm.v test.v
 
-output: $(CASEDIR)/input_sequence
+output:
+	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
 
-$(CASEDIR)/input_sequence: $(BINARY)
+info: $(BINARY)
 	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
+
+deploy: $(BINARY)
+	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
+	scp -r test_cases/ $(BINARY) Makefile $(SERVER):~/$(REMOTEDIR)
+	ssh $(SERVER)
 
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
@@ -34,8 +45,8 @@ $(BINARY): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o Fi
 SVParser.lex.cpp: SVParser.l SVParser.y
 	$(LEX) -t $< > $@
 
-SVParser.tab.cpp: SVParser.y SVParser.hpp
+SVParser.tab.cpp: SVParser.y
 	$(YACC) -d -o $@ $<
 
 clean:
-	$(RM) *.o *.lex.* $(BINARY) *.tab.*
+	$(RM) *.o *.lex.* $(BINARY) *.tab.* assertion_*

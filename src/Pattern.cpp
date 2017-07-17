@@ -53,6 +53,15 @@ bool Pattern::operator==(const Pattern& rhs)
     return true;
 }
 
+Pattern Pattern::defaultPattern()
+{
+    Pattern res = *this;
+    for (int i = 0; i < res.size(); ++i)
+        if (res[i] == 2)
+            res[i] = 0;
+    return res;
+}
+
 std::ostream& operator<<(std::ostream& os, const Pattern& pattern)
 {
     std::string str(pattern.size(), 'x');
