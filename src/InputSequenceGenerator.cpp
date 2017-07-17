@@ -368,7 +368,7 @@ void InputSequenceGenerator::initial2ActivatedArc()
         cout << "WTF\n";
 }
 
-void InputSequenceGenerator::outputNthAssertion(int n)
+void InputSequenceGenerator::outputAnswer()
 {
     output << 0 << Pattern(PATTERNSIZE) << endl;
     output << 1 << Pattern(PATTERNSIZE) << endl;

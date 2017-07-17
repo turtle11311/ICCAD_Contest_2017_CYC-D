@@ -3,3 +3,6 @@ csrc/
 simv
 simv.daidir/
 ucli.key
+
+# generate input sequence
+input_sequence

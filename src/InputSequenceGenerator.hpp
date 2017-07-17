@@ -30,7 +30,7 @@ public:
     void preprocess();
     void staticFindActivatedPoint(Assertion& asrt);
     void printInputSequence();
-    void outputNthAssertion(int n);
+    void outputAnswer();
 
 private:
     void initial2ActivatedArc();
