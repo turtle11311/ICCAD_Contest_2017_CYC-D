@@ -50,8 +50,7 @@ std::string name;
 std::string tmps;
 
 std::stringstream ss;
-std::list<std::string> PATH;
-
+std::list< std::string > PATH;
 
 void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
@@ -85,7 +84,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
             }
         }
     }
-    cout << (res ? asrt.name +" Fail" : " QAQ") << endl;
+    cout << (res ? asrt.name + " Fail" : " QAQ") << endl;
 
     if (res) {
         answerDict[&asrt].pop_front();
@@ -96,6 +95,12 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
             answerDict[&asrt].push_front(*pit);
         }
         name = asrt.name;
+        // for inspector ver2
+        rstTable.push_back(finalAnswer.size() + answerDict[&asrt].size() + 1);
+        for (auto pit = answerDict[&asrt].begin(); pit != answerDict[&asrt].end(); ++pit)
+            finalAnswer.push_back(*pit);
+        assertionInspectorVersion2();
+        //
         assertionInspector(answerDict[&asrt]);
     }
     firstHalfAnswer.clear();
@@ -147,6 +152,65 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     out2 = Pattern(inputSize());
     int tc = 2;
     for (auto it = seq.begin(); it != seq.end(); ++it) {
+        this->input(*it);
+        ff << out2 << endl;
+        for (Assertion& asrt : asrtList) {
+            if (asrt.failed)
+                continue;
+            size_t index = asrt.trigger.index;
+            bool triggerFlag = (asrt.trigger.change == SignalEdge::ROSE);
+            bool signalFlag = (asrt.trigger.target == TargetType::OUT);
+
+            Pattern pre = (signalFlag ? out1 : in1),
+                    cur = (signalFlag ? out2 : in2);
+            if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
+                triggeredAssertion.push_back(AssertionStatus{ 0, &asrt, false });
+            }
+        }
+        for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
+            Assertion& asrt = *as->target;
+            if (as->target->failed)
+                continue;
+            if (as->suc)
+                continue;
+            if (as->slack > asrt.time.second) {
+                cout << asrt.name << " Fail!!!" << endl;
+                cout << asrt.time.second << " " << as->slack << endl;
+                asrt.failed = true;
+            } else if (as->slack >= asrt.time.first) {
+                size_t index = asrt.event.index;
+                bool triggerFlag = (asrt.event.change == SignalEdge::ROSE);
+                bool signalFlag = (asrt.event.target == TargetType::OUT);
+                Pattern pre = (signalFlag ? out1 : in1),
+                        cur = (signalFlag ? out2 : in2);
+                if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
+                    as->suc = true;
+                }
+            }
+            ++(as->slack);
+        }
+        ++tc;
+    }
+    triggeredAssertion.clear();
+    ff.close();
+}
+
+void InputSequenceGenerator::assertionInspectorVersion2()
+{
+    std::ofstream ff(name + ".out");
+    ff << endl
+       << endl;
+    in2 = Pattern(inputSize());
+    out2 = Pattern(inputSize());
+    int tc = 2;
+    int index = 0;
+    std::list< int > rstTemp = rstTable;
+    for (auto it = finalAnswer.begin(); it != finalAnswer.end(); ++it) {
+        ++index;
+        if (rstTemp.front() == index) {
+            rstTemp.pop_front();
+            continue;
+        }
         this->input(*it);
         ff << out2 << endl;
         for (Assertion& asrt : asrtList) {
@@ -292,26 +356,23 @@ void InputSequenceGenerator::initial2ActivatedArc()
             }
         }
     }
-    if ( current->label == 0 ) cout << "WTF\n";
+    if (current->label == 0)
+        cout << "WTF\n";
 }
 
 void InputSequenceGenerator::outputNthAssertion(int n)
 {
-    for (Assertion& asrt : asrtList) {
-        InputSequence& answer = answerDict[&asrt];
-        if (answer.size() == 0)
-            continue;
-        cout << asrt.name << endl;
-        std::ofstream file(asrt.name + ".txt");
-        output << 0 << Pattern(PATTERNSIZE) << endl;
-        output << 1 << Pattern(PATTERNSIZE) << endl;
-        file << 0 << Pattern(PATTERNSIZE) << endl;
-        file << 1 << Pattern(PATTERNSIZE) << endl;
-        for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
-            output << 0 << *iit << endl;
-            file << 0 << *iit << endl;
+    output << 0 << Pattern(PATTERNSIZE) << endl;
+    output << 1 << Pattern(PATTERNSIZE) << endl;
+    std::list< int > rstTemp = rstTable;
+    int index = 0;
+    for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
+        ++index;
+        if (rstTemp.front() == index) {
+            output << 1 << Pattern(PATTERNSIZE) << endl;
+            rstTemp.pop_front();
         }
-        file.close();
+        output << 0 << *pit << endl;
     }
 }
 
