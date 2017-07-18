@@ -65,7 +65,6 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
          << " is " << (triggerFlag ? "rose" : "fell")
          << " in range[" << asrt.time.first << ":" << asrt.time.second << "]"
          << "." << endl;
-
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
@@ -87,7 +86,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     cout << (res ? asrt.name + " Fail" : " QAQ") << endl;
 
     if (res) {
-        asrt.failed = true;
+        asrt.failed = false;
         answerDict[&asrt].pop_front();
         answerDict[&asrt].push_front(targetAP.pattern2.defaultPattern());
         cout << "=====================================" << endl;
@@ -195,17 +194,14 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             }
         }
         for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
+            
             Assertion& asrt = *as->target;
+            
             if (as->target->failed)
                 continue;
             if (as->suc)
                 continue;
-            if (as->slack > asrt.time.second) {
-                cout << asrt.name << " Fail!!!" << endl;
-                cout << asrt.time.second << " " << as->slack << endl;
-                //asrt.failed = true;
-                coverage << asrt.name << endl;
-            } else if (as->slack >= asrt.time.first) {
+            if (as->slack >= asrt.time.first && as->slack < asrt.time.second ) {
                 size_t index = asrt.event.index;
                 bool triggerFlag = (asrt.event.change == SignalEdge::ROSE);
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
@@ -214,14 +210,28 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
                 }
-            }
+            } else if (as->slack >= asrt.time.second) {
+                coverage << asrt.name << endl;
+            } 
             ++(as->slack);
         }
         ++tc;
     }
+    std::ofstream act(name + ".act");
+    for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
+
+        Assertion& asrt = *as->target;
+        if (as->target->failed)
+            continue;
+        if (as->suc)
+            continue;
+        act << asrt.name << endl;
+        act << asrt.time.second << " " << as->slack << endl;
+    }
     triggeredAssertion.clear();
     ff.close();
     coverage.close();
+    act.close();
 }
 
 void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
