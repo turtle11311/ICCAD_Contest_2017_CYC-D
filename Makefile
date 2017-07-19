@@ -49,4 +49,4 @@ SVParser.tab.cpp: SVParser.y
 	$(YACC) -d -o $@ $<
 
 clean:
-	$(RM) *.o *.lex.* $(BINARY) *.tab.* assertion_*
+	$(RM) *.o *.lex.* $(BINARY) *.tab.* assertion_* *.coverage *.act
