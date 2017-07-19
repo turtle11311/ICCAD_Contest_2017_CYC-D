@@ -53,5 +53,6 @@ private:
     ActivatedPoint targetAP;
     InputSequence firstHalfAnswer;
     std::list< AssertionStatus > triggeredAssertion;
+    std::list<int> rstTable;
 };
 } // namespace SVParser

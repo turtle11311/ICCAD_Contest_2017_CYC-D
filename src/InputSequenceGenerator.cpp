@@ -29,13 +29,17 @@ void InputSequenceGenerator::preprocess()
     }
 }
 
+std::string name;
+
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
     asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
         return lhs.time.second > rhs.time.second;
     });
+    std::ofstream asrtL("order.txt");
     for (Assertion& asrt : asrtList) {
+        asrtL << asrt.name << endl;
         cout << asrt.name << ": " << endl;
         path.clear();
         asrtFailedFlag = false;
@@ -44,9 +48,10 @@ void InputSequenceGenerator::simulator()
         cout << endl
              << endl;
     }
+    asrtL.close();
+    
 }
 
-std::string name;
 std::string tmps;
 
 std::stringstream ss;
@@ -172,12 +177,20 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     current = getState(0);
     std::ofstream ff(name + ".out");
     std::ofstream coverage(name + ".coverage");
+    std::ofstream target(name + ".target");
     ff << endl
        << endl;
     in2 = Pattern(inputSize());
     out2 = Pattern(inputSize());
     int tc = 2;
+    int index = 0; 
     for (auto it = seq.begin(); it != seq.end(); ++it) {
+        index++;
+        if ( rstTable.front() == index ){
+            rstTable.pop_front();
+            current = getState(0);
+        }
+            
         this->input(*it);
         ff << out2 << endl;
         for (Assertion& asrt : asrtList) {
@@ -211,12 +224,16 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                     as->suc = true;
                 }
             } else if (as->slack >= asrt.time.second) {
+                // should set asrt.failed = true
+                // in coverage mode, just show every asrt's coverage
                 coverage << asrt.name << endl;
             } 
             ++(as->slack);
         }
         ++tc;
     }
+
+    // show activated who
     std::ofstream act(name + ".act");
     for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
 
@@ -232,6 +249,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     ff.close();
     coverage.close();
     act.close();
+    target.close();
 }
 
 void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
