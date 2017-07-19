@@ -25,11 +25,14 @@ simulation: simv
 simv: fsm.v test.v
 	vcs -sverilog fsm.v test.v
 
+separable:
+	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence -s true > /dev/null"
+
 output:
-	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
+	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence -s false > /dev/null"
 
 info: $(BINARY)
-	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
+	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence -s false
 
 deploy: $(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
