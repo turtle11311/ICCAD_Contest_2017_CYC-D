@@ -1,11 +1,11 @@
 #include "InputSequenceGenerator.hpp"
 #include <algorithm>
 #include <cassert>
-#include <fstream>
 #include <map>
 #include <queue>
 #include <sstream>
 extern std::ofstream output;
+extern bool separableMode;
 namespace SVParser {
 
 InputSequenceGenerator::InputSequenceGenerator()
@@ -49,7 +49,6 @@ void InputSequenceGenerator::simulator()
              << endl;
     }
     asrtL.close();
-    
 }
 
 std::string tmps;
@@ -91,7 +90,6 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     cout << (res ? asrt.name + " Fail" : " QAQ") << endl;
 
     if (res) {
-        asrt.failed = false;
         answerDict[&asrt].pop_front();
         answerDict[&asrt].push_front(targetAP.pattern2.defaultPattern());
         cout << "=====================================" << endl;
@@ -100,7 +98,23 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
             answerDict[&asrt].push_front(*pit);
         }
         name = asrt.name;
-        assertionInspector(answerDict[&asrt]);
+        if (separableMode) {
+            asrt.failed = false;
+
+            coverage.open(name + ".coverage");
+            act.open(name + ".act");
+
+            assertionInspector(answerDict[&asrt]);
+
+            coverage.close();
+            act.close();
+        } else {
+            asrt.failed = true;
+            rstTable.push_back(finalAnswer.size() + answerDict[&asrt].size() + 1);
+            for (auto pit = answerDict[&asrt].begin(); pit != answerDict[&asrt].end(); ++pit)
+                finalAnswer.push_back(*pit);
+            assertionInspector(finalAnswer);
+        }
     }
     firstHalfAnswer.clear();
 }
@@ -142,55 +156,25 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
     return false;
 }
 
-void InputSequenceGenerator::findOutputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
-{
-    path = std::list< ActivatedPoint >(1, ap);
-    unsigned int start = range.first - 1;
-    bool selfCycle = false;
-    Transition* SCT; // self cycle Transition
-    State* nState = ap.state;
-    for (auto it = nState->transitions.begin(); it != nState->transitions.end(); ++it) {
-        if ((*it)->nState == nState) {
-            selfCycle = true;
-            SCT = *it;
-            break;
-        }
-    }
-    if (selfCycle) {
-        for (int i = 0; i < start; ++i)
-            path.push_back(ActivatedPoint({ nState, SCT->pattern, SCT->pattern, SCT, SCT }));
-    } else {
-        for (int i = 0; i < start; ++i) {
-            path.push_back(
-                ActivatedPoint({ nState,
-                    ap.pattern2,
-                    nState->transitions.front()->pattern,
-                    ap.transition2,
-                    nState->transitions.front() }));
-            nState = nState->transitions.front()->nState;
-        }
-    }
-}
-
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
     current = getState(0);
     std::ofstream ff(name + ".out");
-    std::ofstream coverage(name + ".coverage");
-    std::ofstream target(name + ".target");
     ff << endl
        << endl;
     in2 = Pattern(inputSize());
     out2 = Pattern(inputSize());
     int tc = 2;
-    int index = 0; 
+    int index = 0;
+    std::list< int > rstTemp = rstTable;
     for (auto it = seq.begin(); it != seq.end(); ++it) {
         index++;
-        if ( rstTable.front() == index ){
-            rstTable.pop_front();
-            current = getState(0);
+        if (!separableMode) {
+            if (rstTemp.front() == index) {
+                rstTemp.pop_front();
+                current = getState(0);
+            }
         }
-            
         this->input(*it);
         ff << out2 << endl;
         for (Assertion& asrt : asrtList) {
@@ -207,14 +191,12 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             }
         }
         for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
-            
             Assertion& asrt = *as->target;
-            
             if (as->target->failed)
                 continue;
             if (as->suc)
                 continue;
-            if (as->slack >= asrt.time.first && as->slack < asrt.time.second ) {
+            if (as->slack >= asrt.time.first && as->slack < asrt.time.second) {
                 size_t index = asrt.event.index;
                 bool triggerFlag = (asrt.event.change == SignalEdge::ROSE);
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
@@ -224,47 +206,28 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                     as->suc = true;
                 }
             } else if (as->slack >= asrt.time.second) {
-                // should set asrt.failed = true
-                // in coverage mode, just show every asrt's coverage
-                coverage << asrt.name << endl;
-            } 
+                if (separableMode)
+                    coverage << asrt.name << endl;
+                else {
+                    asrt.failed = true;
+                }
+            }
             ++(as->slack);
         }
         ++tc;
     }
 
-    // show activated who
-    std::ofstream act(name + ".act");
-    for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
-
-        Assertion& asrt = *as->target;
-        if (as->target->failed)
-            continue;
-        if (as->suc)
-            continue;
-        act << asrt.name << endl;
-        act << asrt.time.second << " " << as->slack << endl;
+    if (separableMode) {
+        for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
+            Assertion& asrt = *as->target;
+            if (as->target->failed)
+                continue;
+            if (as->suc)
+                continue;
+            act << asrt.name << endl;
+        }
     }
-    triggeredAssertion.clear();
     ff.close();
-    coverage.close();
-    act.close();
-    target.close();
-}
-
-void InputSequenceGenerator::findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range)
-{
-}
-
-void InputSequenceGenerator::printPath()
-{
-    cout << "Path: " << endl;
-    for (auto it = path.begin(); it != path.end(); ++it) {
-        cout << it->pattern1 << " -> S" << it->state->label << " -> " << it->transition1->out;
-        cout << " => ";
-        cout << it->pattern2 << " -> S" << it->transition1->nState->label << " -> " << it->transition2->out << endl;
-        cout << "|" << endl;
-    }
 }
 
 void InputSequenceGenerator::evalInitial2State()
@@ -366,7 +329,6 @@ void InputSequenceGenerator::initial2ActivatedArc()
                 current = from.state;
                 cout << "Layer: " << current->layer << " " << current->label << " " << *from.transition << endl;
                 firstHalfAnswer.push_front(from.transition->defaultPattern());
-
                 break;
             }
         }
@@ -377,30 +339,33 @@ void InputSequenceGenerator::initial2ActivatedArc()
 
 void InputSequenceGenerator::outputAnswer()
 {
-    for (Assertion& asrt : asrtList) {
-        InputSequence& answer = answerDict[&asrt];
-        if (answer.size() == 0)
-            continue;
-        cout << asrt.name << endl;
-        std::ofstream file(asrt.name + ".txt");
+    if (separableMode) {
+        for (Assertion& asrt : asrtList) {
+            InputSequence& answer = answerDict[&asrt];
+            if (answer.size() == 0)
+                continue;
+            std::ofstream file(asrt.name + ".txt");
+            file << 0 << Pattern(PATTERNSIZE) << endl;
+            file << 1 << Pattern(PATTERNSIZE) << endl;
+            for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
+                file << 0 << *iit << endl;
+            }
+            file.close();
+        }
+    } else {
         output << 0 << Pattern(PATTERNSIZE) << endl;
         output << 1 << Pattern(PATTERNSIZE) << endl;
-        file << 0 << Pattern(PATTERNSIZE) << endl;
-        file << 1 << Pattern(PATTERNSIZE) << endl;
-        for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
-            output << 0 << *iit << endl;
-            file << 0 << *iit << endl;
+        std::list< int > rstTemp = rstTable;
+        int index = 0;
+        for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
+            ++index;
+            if (rstTemp.front() == index) {
+                output << 1 << Pattern(PATTERNSIZE) << endl;
+                rstTemp.pop_front();
+            }
+            output << 0 << *pit << endl;
         }
-        file.close();
     }
-}
-
-void InputSequenceGenerator::convertPath2InputSequence()
-{
-    auto it = path.begin();
-    answer.push_back(it->transition1->defaultPattern());
-    for (; it != path.end(); ++it)
-        answer.push_back(it->transition2->defaultPattern());
 }
 
 void InputSequenceGenerator::printInputSequence()

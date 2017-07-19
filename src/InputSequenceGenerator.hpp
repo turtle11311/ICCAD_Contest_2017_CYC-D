@@ -1,6 +1,7 @@
 #pragma once
 #include "Assertion.hpp"
 #include "FiniteStateMachine.hpp"
+#include <fstream>
 #include <list>
 #include <map>
 
@@ -29,8 +30,6 @@ public:
     void simulator();
     void preprocess();
     void staticFindActivatedPoint(Assertion& asrt);
-    void printPath();
-    void convertPath2InputSequence();
     void printInputSequence();
     void outputAnswer();
 
@@ -42,10 +41,8 @@ private:
     void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
     bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step);
-    void findOutputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
-    void findInputSignalTermiateStartPoint(bool triggerFlag, unsigned int index, ActivatedPoint& ap, Range& range);
     void purgeState(int state);
-    InputSequence answer;
+    InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;
     std::list< Assertion > asrtList;
     std::list< ActivatedPoint > path;
@@ -53,6 +50,7 @@ private:
     ActivatedPoint targetAP;
     InputSequence firstHalfAnswer;
     std::list< AssertionStatus > triggeredAssertion;
-    std::list<int> rstTable;
+    std::list< int > rstTable;
+    std::ofstream coverage, act;
 };
 } // namespace SVParser
