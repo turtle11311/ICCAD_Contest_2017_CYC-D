@@ -2,6 +2,7 @@
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <getopt.h>
@@ -29,6 +30,7 @@ std::vector< int > layerTable;
 std::map< int, std::list< int > > rlayerTable;
 std::list< ActivatedPoint > path;
 bool asrtFailedFlag = false;
+bool separableMode = false;
 
 void parseArgAndInitial(int argc, char* argv[]);
 
@@ -58,7 +60,7 @@ void parseArgAndInitial(int argc, char* argv[])
     }
 
     char opt;
-    while ((opt = getopt(argc, argv, "i:o:t:")) != EOF) {
+    while ((opt = getopt(argc, argv, "i:o:t:s:")) != EOF) {
         switch (opt) {
         case 'i':
             yyin = fopen(optarg, "r");
@@ -68,6 +70,9 @@ void parseArgAndInitial(int argc, char* argv[])
             break;
         case 't':
             assertionID = atoi(optarg);
+            break;
+        case 's':
+            separableMode = (!strcmp(optarg, "true")) ? true : false;
             break;
         default:
             break;
