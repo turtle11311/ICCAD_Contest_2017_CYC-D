@@ -1,9 +1,11 @@
 #include "InputSequenceGenerator.hpp"
 #include <algorithm>
 #include <cassert>
+#include <ctime>
 #include <map>
 #include <queue>
 #include <sstream>
+#include <string>
 extern std::ofstream output;
 extern bool separableMode;
 namespace SVParser {
@@ -34,6 +36,7 @@ std::string name;
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
+    randomOrder();
     asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
         return lhs.time.second > rhs.time.second;
     });
@@ -49,6 +52,54 @@ void InputSequenceGenerator::simulator()
              << endl;
     }
     asrtL.close();
+}
+
+void InputSequenceGenerator::randomOrder()
+{
+    srand(time(0));
+    for (int i = 0; i < 10; ++i) {
+        asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
+            return rand() > rand();
+        });
+        for (Assertion& asrt : asrtList) {
+            asrt.failed = false;
+            answerDict[&asrt].clear();
+        }
+        finalAnswer.clear();
+        rstTable.clear();
+        std::ofstream order(std::to_string(i) + ".order");
+        for (Assertion& asrt : asrtList) {
+            order << asrt.name << endl;
+            cout << asrt.name << ": " << endl;
+            path.clear();
+            asrtFailedFlag = false;
+            if (!asrt.failed)
+                fromActivatedPoint2AssertionFailed(asrt);
+            cout << endl
+                 << endl;
+        }
+        std::ofstream rnRes(std::to_string(i) + ".input_sequence");
+        rnRes << 0 << Pattern(PATTERNSIZE) << endl;
+        rnRes << 1 << Pattern(PATTERNSIZE) << endl;
+        std::list< int > rstTemp = rstTable;
+        int index = 0;
+        for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
+            ++index;
+            if (rstTemp.front() == index) {
+                rnRes << 1 << Pattern(PATTERNSIZE) << endl;
+                rstTemp.pop_front();
+            }
+            rnRes << 0 << *pit << endl;
+        }
+        rnRes.close();
+        order.close();
+    }
+    for (Assertion& asrt : asrtList) {
+        asrt.failed = false;
+        answerDict[&asrt].clear();
+    }
+    finalAnswer.clear();
+    rstTable.clear();
 }
 
 std::string tmps;
@@ -228,6 +279,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
         }
     }
     ff.close();
+    triggeredAssertion.clear();
 }
 
 void InputSequenceGenerator::evalInitial2State()
