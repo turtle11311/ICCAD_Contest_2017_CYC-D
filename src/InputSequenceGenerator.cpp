@@ -37,7 +37,6 @@ std::string name;
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
-    //randomOrder();
     asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
         return lhs.time.second > rhs.time.second;
     });
@@ -45,69 +44,56 @@ void InputSequenceGenerator::simulator()
         // cout << asrt.name << ": " << endl;
         path.clear();
         asrtFailedFlag = false;
+        asrt.noSolution = false;
         if (!asrt.failed)
             fromActivatedPoint2AssertionFailed(asrt);
         // cout << endl
         //      << endl;
     }
-    cout << "Initial answer length: " << finalAnswer.size() << endl;
+    for (Assertion& asrt : asrtList) {
+        InputSequence& answer = answerDict[&asrt];
+        if (answer.size() == 0)
+            continue;
+        std::ofstream file(asrt.name + ".txt");
+        file << 0 << Pattern(PATTERNSIZE) << endl;
+        file << 1 << Pattern(PATTERNSIZE) << endl;
+        for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
+            file << 0 << *iit << endl;
+        }
+        file.close();
+    }
+    generateSolution();
     if (!separableMode)
         simulatedAnnealing();
 }
 
-void InputSequenceGenerator::randomOrder()
+void InputSequenceGenerator::generateSolution()
 {
-    for (int i = 0; i < 10; ++i) {
-        asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
-            return rand() > rand();
-        });
-        for (Assertion& asrt : asrtList) {
-            asrt.failed = false;
-            answerDict[&asrt].clear();
-        }
-        finalAnswer.clear();
-        rstTable.clear();
-        std::ofstream order(std::to_string(i) + ".order");
-        for (Assertion& asrt : asrtList) {
-            order << asrt.name << endl;
-            cout << asrt.name << ": " << endl;
-            path.clear();
-            asrtFailedFlag = false;
-            if (!asrt.failed)
-                fromActivatedPoint2AssertionFailed(asrt);
-            cout << endl
-                 << endl;
-        }
-        std::ofstream rnRes(std::to_string(i) + ".input_sequence");
-        rnRes << 0 << Pattern(PATTERNSIZE) << endl;
-        rnRes << 1 << Pattern(PATTERNSIZE) << endl;
-        std::list< int > rstTemp = rstTable;
-        int index = 0;
-        for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
-            ++index;
-            if (rstTemp.front() == index) {
-                rnRes << 1 << Pattern(PATTERNSIZE) << endl;
-                rstTemp.pop_front();
-            }
-            rnRes << 0 << *pit << endl;
-        }
-        rnRes.close();
-        order.close();
-    }
     for (Assertion& asrt : asrtList) {
         asrt.failed = false;
-        answerDict[&asrt].clear();
     }
     finalAnswer.clear();
     rstTable.clear();
+    // if (answerDict[&asrtList.front()].size() != 0) {
+    //     rstTable.push_back(finalAnswer.size() + answerDict[&asrtList.front()].size() + 1);
+    //     for (auto pit = answerDict[&asrtList.front()].begin(); pit != answerDict[&asrtList.front()].end(); ++pit)
+    //         finalAnswer.push_back(*pit);
+    // }
+    for (Assertion& asrt : asrtList) {
+        cout << asrt.name << " " << answerDict[&asrt].size() << endl;
+        if (asrt.failed || asrt.noSolution)
+            continue;
+        cout << "pick." << endl;
+        rstTable.push_back(finalAnswer.size() + answerDict[&asrt].size() + 1);
+        for (auto pit = answerDict[&asrt].begin(); pit != answerDict[&asrt].end(); ++pit)
+            finalAnswer.push_back(*pit);
+        assertionInspector(finalAnswer);
+    }
+    cout << "Size: " << finalAnswer.size() << endl;
 }
 
-void InputSequenceGenerator::randomSwap4SA()
+void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
 {
-    int i1 = rand() % asrtList.size();
-    int i2;
-    while (i1 == (i2 = rand() % asrtList.size()))
-        ;
     int i = 0;
     std::list< Assertion >::iterator it1, it2;
     for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
@@ -118,47 +104,32 @@ void InputSequenceGenerator::randomSwap4SA()
         ++i;
     }
     std::swap(*it1, *it2);
+    std::swap(answerDict[&(*it1)], answerDict[&(*it2)]);
 }
+
 void InputSequenceGenerator::simulatedAnnealing()
 {
     float temperature = 100.0f;
     float rate = 0.95f;
     InputSequence opt = finalAnswer;
+    std::list< int > optRstTable = rstTable;
     InputSequence local = finalAnswer;
     std::list< std::string > optOrder;
 
-    for (Assertion& asrt : asrtList) {
-        asrt.failed = false;
-        answerDict[&asrt].clear();
-    }
-    finalAnswer.clear();
-    rstTable.clear();
     int r = 0;
     while (temperature > 1.0) {
         cout << "Local optimal length: " << local.size() << endl;
-        // reset
-        for (Assertion& asrt : asrtList) {
-            asrt.failed = false;
-            answerDict[&asrt].clear();
-        }
-        finalAnswer.clear();
-        rstTable.clear();
 
         // swap
-        randomSwap4SA();
+        int i1 = rand() % asrtList.size();
+        int i2;
+        while (i1 == (i2 = rand() % asrtList.size()))
+            ;
+        randomSwap4SA(i1, i2);
 
         std::list< std::string > curOrder;
         // generate input sequence
-        for (Assertion& asrt : asrtList) {
-            cout << asrt.name << endl;
-            curOrder.push_back(asrt.name);
-            path.clear();
-            asrtFailedFlag = false;
-            if (!asrt.failed)
-                fromActivatedPoint2AssertionFailed(asrt);
-            // cout << endl
-            //      << endl;
-        }
+        generateSolution();
 
         // accept
         cout << "Current length: " << finalAnswer.size() << endl;
@@ -167,6 +138,7 @@ void InputSequenceGenerator::simulatedAnnealing()
             if (opt.size() > finalAnswer.size()) {
                 opt = finalAnswer;
                 optOrder = curOrder;
+                optRstTable = rstTable;
             }
         } else {
             int s1 = finalAnswer.size(), s2 = local.size();
@@ -175,13 +147,16 @@ void InputSequenceGenerator::simulatedAnnealing()
             // condition accept
             if (((float)(rand() % 1000)) / 1000 < threshold) {
                 local = finalAnswer;
+            } else {
+                randomSwap4SA(i1, i2);
             }
         }
-        if (!((r++) % 1000))
+        if (!((r++) % 10))
             temperature *= rate;
     }
     cout << "Optimal length: " << opt.size() << endl;
     finalAnswer = opt;
+    rstTable = optRstTable;
     std::ofstream oo("opt.order");
     for (auto od : optOrder) {
         oo << od << endl;
@@ -235,24 +210,24 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
-        name = asrt.name;
-        if (separableMode) {
-            asrt.failed = false;
-
-            coverage.open(name + ".coverage");
-            act.open(name + ".act");
-
-            assertionInspector(answerDict[&asrt]);
-
-            coverage.close();
-            act.close();
-        } else {
-            asrt.failed = true;
-            rstTable.push_back(finalAnswer.size() + answerDict[&asrt].size() + 1);
-            for (auto pit = answerDict[&asrt].begin(); pit != answerDict[&asrt].end(); ++pit)
-                finalAnswer.push_back(*pit);
-            assertionInspector(finalAnswer);
-        }
+        // if (separableMode) {
+        //     asrt.failed = false;
+        //
+        //     coverage.open(name + ".coverage");
+        //     act.open(name + ".act");
+        //
+        //     assertionInspector(answerDict[&asrt]);
+        //
+        //     coverage.close();
+        //     act.close();
+        // } else {
+        //     // rstTable.push_back(finalAnswer.size() + answerDict[&asrt].size() + 1);
+        //     // for (auto pit = answerDict[&asrt].begin(); pit != answerDict[&asrt].end(); ++pit)
+        //     //     finalAnswer.push_back(*pit);
+        //     // assertionInspector(finalAnswer);
+        // }
+    } else {
+        asrt.noSolution = true;
     }
     firstHalfAnswer.clear();
 }
@@ -264,7 +239,6 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
     PATH.emplace_back(tmps);
     sequence.push_back(t2->defaultPattern());
     if (step > asrt.time.second) {
-        asrt.failed = true;
         return true;
     }
     if (step > asrt.time.first) {

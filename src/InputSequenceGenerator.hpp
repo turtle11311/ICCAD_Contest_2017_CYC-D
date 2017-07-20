@@ -42,9 +42,9 @@ private:
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
     bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step);
     void purgeState(int state);
-    void randomOrder();
     void simulatedAnnealing();
-    void randomSwap4SA();
+    void randomSwap4SA(int, int);
+    void generateSolution();
     InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;
     std::list< Assertion > asrtList;
