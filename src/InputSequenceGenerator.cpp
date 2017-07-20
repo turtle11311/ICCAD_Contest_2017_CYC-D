@@ -1,6 +1,7 @@
 #include "InputSequenceGenerator.hpp"
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <ctime>
 #include <map>
 #include <queue>
@@ -36,27 +37,26 @@ std::string name;
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
-    randomOrder();
+    //randomOrder();
     asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
         return lhs.time.second > rhs.time.second;
     });
-    std::ofstream asrtL("order.txt");
     for (Assertion& asrt : asrtList) {
-        asrtL << asrt.name << endl;
-        cout << asrt.name << ": " << endl;
+        // cout << asrt.name << ": " << endl;
         path.clear();
         asrtFailedFlag = false;
         if (!asrt.failed)
             fromActivatedPoint2AssertionFailed(asrt);
-        cout << endl
-             << endl;
+        // cout << endl
+        //      << endl;
     }
-    asrtL.close();
+    cout << "Initial answer length: " << finalAnswer.size() << endl;
+    if (!separableMode)
+        simulatedAnnealing();
 }
 
 void InputSequenceGenerator::randomOrder()
 {
-    srand(time(0));
     for (int i = 0; i < 10; ++i) {
         asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
             return rand() > rand();
@@ -102,6 +102,93 @@ void InputSequenceGenerator::randomOrder()
     rstTable.clear();
 }
 
+void InputSequenceGenerator::randomSwap4SA()
+{
+    int i1 = rand() % asrtList.size();
+    int i2;
+    while (i1 == (i2 = rand() % asrtList.size()))
+        ;
+    int i = 0;
+    std::list< Assertion >::iterator it1, it2;
+    for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
+        if (i1 == i)
+            it1 = it;
+        else if (i2 == i)
+            it2 = it;
+        ++i;
+    }
+    std::swap(*it1, *it2);
+}
+void InputSequenceGenerator::simulatedAnnealing()
+{
+    float temperature = 100.0f;
+    float rate = 0.95f;
+    InputSequence opt = finalAnswer;
+    InputSequence local = finalAnswer;
+    std::list< std::string > optOrder;
+
+    for (Assertion& asrt : asrtList) {
+        asrt.failed = false;
+        answerDict[&asrt].clear();
+    }
+    finalAnswer.clear();
+    rstTable.clear();
+    int r = 0;
+    while (temperature > 1.0) {
+        cout << "Local optimal length: " << local.size() << endl;
+        // reset
+        for (Assertion& asrt : asrtList) {
+            asrt.failed = false;
+            answerDict[&asrt].clear();
+        }
+        finalAnswer.clear();
+        rstTable.clear();
+
+        // swap
+        randomSwap4SA();
+
+        std::list< std::string > curOrder;
+        // generate input sequence
+        for (Assertion& asrt : asrtList) {
+            cout << asrt.name << endl;
+            curOrder.push_back(asrt.name);
+            path.clear();
+            asrtFailedFlag = false;
+            if (!asrt.failed)
+                fromActivatedPoint2AssertionFailed(asrt);
+            // cout << endl
+            //      << endl;
+        }
+
+        // accept
+        cout << "Current length: " << finalAnswer.size() << endl;
+        if (local.size() > finalAnswer.size()) {
+            local = finalAnswer;
+            if (opt.size() > finalAnswer.size()) {
+                opt = finalAnswer;
+                optOrder = curOrder;
+            }
+        } else {
+            int s1 = finalAnswer.size(), s2 = local.size();
+            int delta = abs(s1 - s2);
+            float threshold = 1 / exp(delta / temperature);
+            // condition accept
+            if (((float)(rand() % 1000)) / 1000 < threshold) {
+                local = finalAnswer;
+            }
+        }
+        if (!((r++) % 1000))
+            temperature *= rate;
+    }
+    cout << "Optimal length: " << opt.size() << endl;
+    finalAnswer = opt;
+    std::ofstream oo("opt.order");
+    for (auto od : optOrder) {
+        oo << od << endl;
+    }
+    oo.close();
+}
+
 std::string tmps;
 
 std::stringstream ss;
@@ -112,14 +199,14 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     bool signalFlag = asrt.event.target == TargetType::OUT ? true : false;
     bool triggerFlag = asrt.event.change == SignalEdge::ROSE ? true : false;
     unsigned int index = asrt.event.index;
-    cout << "Activated target: " << ((asrt.trigger.target == TargetType::OUT) ? "out[" : "in[")
-         << asrt.trigger.index << "]"
-         << " is " << (asrt.trigger.change == SignalEdge::ROSE ? "rose" : "fell")
-         << endl;
-    cout << "Terminate target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
-         << " is " << (triggerFlag ? "rose" : "fell")
-         << " in range[" << asrt.time.first << ":" << asrt.time.second << "]"
-         << "." << endl;
+    // cout << "Activated target: " << ((asrt.trigger.target == TargetType::OUT) ? "out[" : "in[")
+    //      << asrt.trigger.index << "]"
+    //      << " is " << (asrt.trigger.change == SignalEdge::ROSE ? "rose" : "fell")
+    //      << endl;
+    // cout << "Terminate target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
+    //      << " is " << (triggerFlag ? "rose" : "fell")
+    //      << " in range[" << asrt.time.first << ":" << asrt.time.second << "]"
+    //      << "." << endl;
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
@@ -129,21 +216,21 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
             answerDict[&asrt].clear();
             res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.state, ap.transition1, ap.transition2, 1);
             if (res) {
-                for (auto it = PATH.begin(); it != PATH.end(); ++it) {
-                    cout << *it << endl;
-                }
+                // for (auto it = PATH.begin(); it != PATH.end(); ++it) {
+                //     cout << *it << endl;
+                // }
                 targetAP = ap;
-                targetAP.printAP();
+                // targetAP.printAP();
                 break;
             }
         }
     }
-    cout << (res ? asrt.name + " Fail" : " QAQ") << endl;
+    // cout << (res ? asrt.name + " Fail" : " QAQ") << endl;
 
     if (res) {
         answerDict[&asrt].pop_front();
         answerDict[&asrt].push_front(targetAP.pattern2.defaultPattern());
-        cout << "=====================================" << endl;
+        // cout << "=====================================" << endl;
         initial2ActivatedArc();
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
@@ -371,7 +458,7 @@ void InputSequenceGenerator::initial2ActivatedArc()
             break;
         }
     }
-    cout << "Layer: " << current->layer << " " << current->label << " " << *targetAP.transition1 << endl;
+    // cout << "Layer: " << current->layer << " " << current->label << " " << *targetAP.transition1 << endl;
     firstHalfAnswer.push_front(targetAP.pattern1.defaultPattern());
     assert(current != nullptr);
     current->traversed = true;
@@ -379,14 +466,12 @@ void InputSequenceGenerator::initial2ActivatedArc()
         for (State::From& from : current->fromList) {
             if (!from.state->traversed && (from.state->layer < current->layer)) {
                 current = from.state;
-                cout << "Layer: " << current->layer << " " << current->label << " " << *from.transition << endl;
+                // cout << "Layer: " << current->layer << " " << current->label << " " << *from.transition << endl;
                 firstHalfAnswer.push_front(from.transition->defaultPattern());
                 break;
             }
         }
     }
-    if (current->label == 0)
-        cout << "WTF\n";
 }
 
 void InputSequenceGenerator::outputAnswer()

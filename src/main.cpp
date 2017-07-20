@@ -36,6 +36,7 @@ void parseArgAndInitial(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
+    srand(time(0));
     parseArgAndInitial(argc, argv);
 
     InputSequenceGenerator generator;
