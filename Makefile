@@ -31,7 +31,7 @@ separable:
 output:
 	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence -s false > /dev/null"
 
-info: $(BINARY)
+info:
 	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence -s false
 
 deploy: $(BINARY)
