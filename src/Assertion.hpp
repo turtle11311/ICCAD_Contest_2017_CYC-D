@@ -45,6 +45,7 @@ struct Assertion {
     std::string name;
     bool activated;
     bool failed;
+    bool noSolution;
     SignalChange trigger;
     SignalChange event;
     Range time;
