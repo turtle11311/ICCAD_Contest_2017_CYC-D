@@ -299,7 +299,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             Pattern pre = (signalFlag ? out1 : in1),
                     cur = (signalFlag ? out2 : in2);
             if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
-                triggeredAssertion.push_back(AssertionStatus{ 0, &asrt, false });
+                triggeredAssertion.push_back(AssertionStatus{0, &asrt, false});
             }
         }
         for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
@@ -492,11 +492,11 @@ void InputSequenceGenerator::purgeState(int state)
     for (Transition* trans : it->second->transitions) {
         for (State::From& from : trans->nState->fromList) {
             trans->nState->fromList.erase(std::remove_if(trans->nState->fromList.begin(),
-                                              trans->nState->fromList.end(),
-                                              [=](State::From& from) {
+                                                         trans->nState->fromList.end(),
+                                                         [=](State::From& from) {
                                                   return from.state == it->second;
-                                              }),
-                trans->nState->fromList.end());
+                                          }),
+                                          trans->nState->fromList.end());
         }
     }
     if (it != this->end()) {

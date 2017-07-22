@@ -15,7 +15,10 @@ public:
     using _Base::begin;
     using _Base::end;
     FiniteStateMachine();
-    inline size_t inputSize() { return PATTERNSIZE; }
+    inline size_t inputSize()
+    {
+        return PATTERNSIZE;
+    }
     void input(const Pattern& pattern);
     State* getState(int state);
     void printStateLayer();

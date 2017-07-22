@@ -12,7 +12,7 @@ FiniteStateMachine::FiniteStateMachine()
 void FiniteStateMachine::insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out)
 {
     PATTERNSIZE = pattern.size();
-    State *nowState = getState(state), *nextState = getState(nState);
+    State* nowState = getState(state), *nextState = getState(nState);
     nowState->transitions.push_back(
         new Transition(std::move(pattern), nextState, std::move(out)));
 

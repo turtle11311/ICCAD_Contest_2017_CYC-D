@@ -30,7 +30,7 @@ struct ActivatedPoint {
     ActivatedPoint(State* state, Pattern& pattern1, Pattern& pattern2, Transition* transition1, Transition* transition2);
     State* state;
     Pattern pattern1, pattern2;
-    Transition *transition1, *transition2;
+    Transition* transition1, *transition2;
     void printAP()
     {
         cout << "(S" << state->label << ") -> " << pattern1
