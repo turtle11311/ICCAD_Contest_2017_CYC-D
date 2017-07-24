@@ -45,6 +45,7 @@ private:
     void simulatedAnnealing();
     void randomSwap4SA(int, int);
     void generateSolution();
+    Pattern evalStartInput();
     InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;
     std::list< Assertion > asrtList;

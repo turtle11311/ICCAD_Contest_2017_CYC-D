@@ -343,6 +343,22 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     triggeredAssertion.clear();
 }
 
+Pattern InputSequenceGenerator::evalStartInput()
+{
+    Pattern input(inputSize());
+    std::vector< int > counter(inputSize(), 0);
+    for (Assertion& asrt : asrtList) {
+        if (asrt.trigger.target == TargetType::OUT)
+            continue;
+        size_t index = asrt.trigger.index;
+        counter[index] += (asrt.trigger.change == SignalEdge::ROSE) ? 1 : -1;
+    }
+    for (size_t index = 0; index < inputSize(); ++index) {
+        input[index] = counter[index] > 0 ? 1 : 0;
+    }
+    return input;
+}
+
 void InputSequenceGenerator::evalInitial2State()
 {
     std::queue< State* > bfsQueue;
@@ -464,7 +480,7 @@ void InputSequenceGenerator::outputAnswer()
             file.close();
         }
     } else {
-        output << 0 << Pattern(PATTERNSIZE) << endl;
+        output << 0 << evalStartInput() << endl;
         output << 1 << Pattern(PATTERNSIZE) << endl;
         std::list< int > rstTemp = rstTable;
         int index = 0;
