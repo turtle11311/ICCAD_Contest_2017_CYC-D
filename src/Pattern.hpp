@@ -13,11 +13,12 @@ class Pattern : private std::vector< unsigned short > {
 public:
     static const unsigned short DONT_CARE = 2;
     friend std::ostream& operator<<(std::ostream& os, const Pattern& pattern);
+    using _Base::value_type;
     using _Base::size;
     using _Base::operator[];
     using _Base::operator=;
     using _Base::push_back;
-    Pattern(const size_t size = 0);
+    Pattern(const size_t size = 0, value_type val = 0);
     Pattern(const Pattern& rhs);
     Pattern(const char* str);
     Pattern(const std::string& str);

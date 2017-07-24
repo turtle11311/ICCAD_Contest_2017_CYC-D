@@ -3,8 +3,8 @@
 
 namespace SVParser {
 
-Pattern::Pattern(const size_t size)
-    : _Base(size, 0)
+Pattern::Pattern(const size_t size, value_type val)
+    : _Base(size, val)
 {
 }
 Pattern::Pattern(const Pattern& rhs)
