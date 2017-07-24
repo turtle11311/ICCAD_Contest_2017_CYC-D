@@ -32,6 +32,17 @@ void InputSequenceGenerator::preprocess()
     }
 }
 
+void InputSequenceGenerator::assertionByOrder(std::vector< int >& order)
+{
+    asrtList.sort([&order](const Assertion& lhs, const Assertion& rhs) {
+            int a, b;
+            sscanf(lhs.name.c_str(), "assertion_rule%d", &a);
+            sscanf(rhs.name.c_str(), "assertion_rule%d", &b);
+            return (std::find(order.begin(), order.end(), a) - order.begin()) <
+                   (std::find(order.begin(), order.end(), b) - order.begin());
+    });
+}
+
 std::string name;
 
 void InputSequenceGenerator::simulator()
@@ -63,8 +74,8 @@ void InputSequenceGenerator::simulator()
         file.close();
     }
     generateSolution();
-    if (!separableMode)
-        simulatedAnnealing();
+    //if (!separableMode)
+    //simulatedAnnealing();
 }
 
 void InputSequenceGenerator::generateSolution()
