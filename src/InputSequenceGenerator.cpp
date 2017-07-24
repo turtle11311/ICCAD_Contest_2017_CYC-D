@@ -48,8 +48,11 @@ std::string name;
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
+    cout << inputSize() << " " << outputSize() << endl;
+    //std::vector< int > order = {1, 6};
+    //assertionByOrder(order);
     asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
-        return lhs.time.second > rhs.time.second;
+    return lhs.time.second > rhs.time.second;
     });
     for (Assertion& asrt : asrtList) {
         // cout << asrt.name << ": " << endl;
@@ -66,16 +69,16 @@ void InputSequenceGenerator::simulator()
         if (answer.size() == 0)
             continue;
         std::ofstream file(asrt.name + ".txt");
-        file << 0 << Pattern(PATTERNSIZE) << endl;
-        file << 1 << Pattern(PATTERNSIZE) << endl;
+        file << 0 << Pattern(inputSize()) << endl;
+        file << 1 << Pattern(inputSize()) << endl;
         for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
             file << 0 << *iit << endl;
         }
         file.close();
     }
     generateSolution();
-    //if (!separableMode)
-    //simulatedAnnealing();
+    if (!separableMode)
+        simulatedAnnealing();
 }
 
 void InputSequenceGenerator::generateSolution()
@@ -84,7 +87,9 @@ void InputSequenceGenerator::generateSolution()
         asrt.failed = false;
     }
     finalAnswer.clear();
+    finalAnswer.push_back(evalStartInput());
     rstTable.clear();
+    rstTable.push_back(2);
     // if (answerDict[&asrtList.front()].size() != 0) {
     //     rstTable.push_back(finalAnswer.size() + answerDict[&asrtList.front()].size() + 1);
     //     for (auto pit = answerDict[&asrtList.front()].begin(); pit != answerDict[&asrtList.front()].end(); ++pit)
@@ -285,8 +290,8 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     std::ofstream ff(name + ".out");
     ff << endl
        << endl;
-    in2 = Pattern(inputSize());
-    out2 = Pattern(inputSize());
+    in2 = Pattern(inputSize(), 2);
+    out2 = Pattern(outputSize(), 2);
     int tc = 2;
     int index = 0;
     std::list< int > rstTemp = rstTable;
@@ -299,17 +304,19 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             }
         }
         this->input(*it);
+        cout << in1 << "=>" << in2 << ", " << out1 << "=>" << out2 << endl;
         ff << out2 << endl;
         for (Assertion& asrt : asrtList) {
             if (asrt.failed)
                 continue;
             size_t index = asrt.trigger.index;
-            bool triggerFlag = (asrt.trigger.change == SignalEdge::ROSE);
+            Pattern::value_type triggerFlag = (asrt.trigger.change == SignalEdge::ROSE) ? 1 : 0;
             bool signalFlag = (asrt.trigger.target == TargetType::OUT);
 
-            Pattern pre = (signalFlag ? out1 : in1),
-                    cur = (signalFlag ? out2 : in2);
-            if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
+            Pattern& pre = (signalFlag ? out1 : in1),
+                     &cur = (signalFlag ? out2 : in2);
+            if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
+                cout << asrt.name << " activated!!" << endl;
                 triggeredAssertion.push_back(AssertionStatus{0, &asrt, false});
             }
         }
@@ -321,11 +328,11 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 continue;
             if (as->slack >= asrt.time.first && as->slack < asrt.time.second) {
                 size_t index = asrt.event.index;
-                bool triggerFlag = (asrt.event.change == SignalEdge::ROSE);
+                Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
-                Pattern pre = (signalFlag ? out1 : in1),
-                        cur = (signalFlag ? out2 : in2);
-                if (pre[index] == !triggerFlag && cur[index] == triggerFlag) {
+                Pattern& pre = (signalFlag ? out1 : in1),
+                         &cur = (signalFlag ? out2 : in2);
+                if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
                 }
             } else if (as->slack >= asrt.time.second) {
@@ -483,22 +490,20 @@ void InputSequenceGenerator::outputAnswer()
             if (answer.size() == 0)
                 continue;
             std::ofstream file(asrt.name + ".txt");
-            file << 0 << Pattern(PATTERNSIZE) << endl;
-            file << 1 << Pattern(PATTERNSIZE) << endl;
+            file << 0 << Pattern(inputSize()) << endl;
+            file << 1 << Pattern(inputSize()) << endl;
             for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
                 file << 0 << *iit << endl;
             }
             file.close();
         }
     } else {
-        output << 0 << evalStartInput() << endl;
-        output << 1 << Pattern(PATTERNSIZE) << endl;
         std::list< int > rstTemp = rstTable;
         int index = 0;
         for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
             ++index;
             if (rstTemp.front() == index) {
-                output << 1 << Pattern(PATTERNSIZE) << endl;
+                output << 1 << Pattern(inputSize()) << endl;
                 rstTemp.pop_front();
             }
             output << 0 << *pit << endl;

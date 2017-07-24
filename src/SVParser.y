@@ -20,7 +20,7 @@ int yyerror(SVParser::InputSequenceGenerator& FSM, const char* text) {
 }
 
 // Variable
-std::vector<std::string*> nameList;
+std::vector<std::string> nameList;
 std::map<std::string, unsigned int> paraTable;
 Assertion asrt;
 
@@ -111,6 +111,14 @@ module_item
 port_declaration
         : port_type port_identifier_list
         | port_type range port_identifier_list
+        {
+            std::string in("in"), out("out");
+            if (std::find(nameList.begin(), nameList.end(), in) != nameList.end()) {
+                FSM.IPATTERNSIZE = $2->length();
+            } else if (std::find(nameList.begin(), nameList.end(), out) != nameList.end()) {
+                FSM.OPATTERNSIZE = $2->length();
+            }
+        }
         ;
 
 port_type
@@ -122,12 +130,12 @@ port_type
 port_identifier_list
         : port_identifier_list ',' port_identifier
         {
-            nameList.push_back($3);
+            nameList.push_back(*$3);
         }
         | port_identifier
         {
             nameList.clear();
-            nameList.push_back($1);
+            nameList.push_back(*$1);
         }
         ;
 

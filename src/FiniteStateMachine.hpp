@@ -17,7 +17,11 @@ public:
     FiniteStateMachine();
     inline size_t inputSize()
     {
-        return PATTERNSIZE;
+        return IPATTERNSIZE;
+    }
+    inline size_t outputSize()
+    {
+        return OPATTERNSIZE;
     }
     void input(const Pattern& pattern);
     State* getState(int state);
@@ -29,7 +33,8 @@ public:
 
 protected:
     void insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out);
-    size_t PATTERNSIZE;
+    size_t IPATTERNSIZE;
+    size_t OPATTERNSIZE;
     std::set< State* > isolatedStates;
     std::map< int, std::vector< State* > > rlayerTable;
     State* current;
