@@ -26,4 +26,15 @@ public:
     bool operator==(const Pattern& rhs);
     Pattern defaultPattern();
 };
+
+class InputPattern : public Pattern {
+    typedef Pattern _Base;
+
+public:
+    friend std::ostream& operator<<(std::ostream& os, const InputPattern& pattern);
+    InputPattern(const size_t size = 0, value_type val = 0, bool reset = false);
+    InputPattern(const Pattern& rhs, bool reset = false);
+
+    bool reset;
+};
 } // namespace SVParser

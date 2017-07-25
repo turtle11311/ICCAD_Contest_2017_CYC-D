@@ -73,14 +73,12 @@ void InputSequenceGenerator::generateSolution()
     }
     finalAnswer.clear();
     finalAnswer.push_back(evalStartInput());
-    rstTable.clear();
-    rstTable.push_back(2);
     for (Assertion& asrt : asrtList) {
         cout << asrt.name << " " << answerDict[&asrt].size() << endl;
         if (asrt.failed || asrt.noSolution)
             continue;
         cout << "pick." << endl;
-        rstTable.push_back(finalAnswer.size() + answerDict[&asrt].size() + 1);
+        finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
         for (auto pit = answerDict[&asrt].begin(); pit != answerDict[&asrt].end(); ++pit)
             finalAnswer.push_back(*pit);
         assertionInspector(finalAnswer);
@@ -108,7 +106,6 @@ void InputSequenceGenerator::simulatedAnnealing()
     float temperature = 100.0f;
     float rate = 0.95f;
     InputSequence opt = finalAnswer;
-    std::list< int > optRstTable = rstTable;
     InputSequence local = finalAnswer;
     std::list< std::string > optOrder;
 
@@ -134,7 +131,6 @@ void InputSequenceGenerator::simulatedAnnealing()
             if (opt.size() > finalAnswer.size()) {
                 opt = finalAnswer;
                 optOrder = curOrder;
-                optRstTable = rstTable;
             }
         } else {
             int s1 = finalAnswer.size(), s2 = local.size();
@@ -152,7 +148,6 @@ void InputSequenceGenerator::simulatedAnnealing()
     }
     cout << "Optimal length: " << opt.size() << endl;
     finalAnswer = opt;
-    rstTable = optRstTable;
 }
 
 std::string tmps;
@@ -246,17 +241,9 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
     current = undefState;
-    in2 = Pattern(inputSize(), 2);
+    in2 = InputPattern(inputSize(), 2);
     out2 = Pattern(outputSize(), 2);
-    int tc = 2;
-    int index = 0;
-    std::list< int > rstTemp = rstTable;
     for (auto it = seq.begin(); it != seq.end(); ++it) {
-        index++;
-        if (rstTemp.front() == index) {
-            rstTemp.pop_front();
-            current = initial;
-        }
         this->input(*it);
         cout << current->label << "  " << in1 << "=>" << in2 << ", " << out1 << "=>" << out2 << endl;
         for (Assertion& asrt : asrtList) {
@@ -294,15 +281,14 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             }
             ++(as->slack);
         }
-        ++tc;
     }
 
     triggeredAssertion.clear();
 }
 
-Pattern InputSequenceGenerator::evalStartInput()
+InputPattern InputSequenceGenerator::evalStartInput()
 {
-    Pattern input(inputSize());
+    InputPattern input(inputSize());
     std::vector< int > counter(inputSize(), 0);
     for (Assertion& asrt : asrtList) {
         if (asrt.trigger.target == TargetType::OUT)
@@ -423,23 +409,9 @@ void InputSequenceGenerator::initial2ActivatedArc()
 
 void InputSequenceGenerator::outputAnswer()
 {
-    std::list< int > rstTemp = rstTable;
-    int index = 0;
     for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
-        ++index;
-        if (rstTemp.front() == index) {
-            output << 1 << Pattern(inputSize()) << endl;
-            rstTemp.pop_front();
-        }
-        output << 0 << *pit << endl;
+        output << *pit << endl;
     }
-}
-
-void InputSequenceGenerator::printInputSequence()
-{
-    for (auto it = answer.begin(); it != answer.end(); ++it)
-        output << *it << endl;
-    output << endl;
 }
 
 void InputSequenceGenerator::purgeState(int state)

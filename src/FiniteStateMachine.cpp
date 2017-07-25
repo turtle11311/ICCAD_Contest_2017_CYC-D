@@ -30,7 +30,7 @@ State* FiniteStateMachine::getState(int state)
     return ((*this)[state] = new State(state));
 }
 
-void FiniteStateMachine::input(const Pattern& pattern)
+void FiniteStateMachine::input(const InputPattern& pattern)
 {
     in1 = in2;
     out1 = out2;
@@ -42,6 +42,8 @@ void FiniteStateMachine::input(const Pattern& pattern)
             break;
         }
     }
+    if (pattern.reset)
+        current = initial;
 }
 
 FiniteStateMachine::~FiniteStateMachine()

@@ -23,7 +23,7 @@ public:
     {
         return OPATTERNSIZE;
     }
-    void input(const Pattern& pattern);
+    void input(const InputPattern& pattern);
     State* getState(int state);
     void printStateLayer();
     void setIsolatedState(int state);
@@ -42,6 +42,6 @@ protected:
     int initialNumber;
     State* initial;
     Pattern out1, out2;
-    Pattern in1, in2;
+    InputPattern in1, in2;
 };
 } // namespace SVParser

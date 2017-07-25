@@ -71,4 +71,21 @@ std::ostream& operator<<(std::ostream& os, const Pattern& pattern)
     std::reverse(str.begin(), str.end());
     return os << str;
 }
+
+InputPattern::InputPattern(const size_t size, value_type val, bool reset)
+    : _Base(size, val)
+    , reset(reset)
+{
+}
+
+InputPattern::InputPattern(const Pattern& rhs, bool reset)
+    : _Base(rhs)
+    , reset(reset)
+{
+}
+
+std::ostream& operator<<(std::ostream& os, const InputPattern& pattern)
+{
+    return os << pattern.reset << static_cast< Pattern >(pattern);
+}
 } // namespace SVParser

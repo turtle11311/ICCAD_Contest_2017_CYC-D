@@ -19,7 +19,7 @@ struct AssertionStatus {
     bool suc;
 };
 
-typedef std::list< Pattern > InputSequence;
+typedef std::list< InputPattern > InputSequence;
 
 class InputSequenceGenerator : protected FiniteStateMachine {
     typedef FiniteStateMachine _Base;
@@ -30,7 +30,6 @@ public:
     void simulator();
     void preprocess();
     void staticFindActivatedPoint(Assertion& asrt);
-    void printInputSequence();
     void outputAnswer();
 
 private:
@@ -46,7 +45,7 @@ private:
     void randomSwap4SA(int, int);
     void generateSolution();
     void assertionByOrder(std::vector< int >& order);
-    Pattern evalStartInput();
+    InputPattern evalStartInput();
     InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;
     std::list< Assertion > asrtList;
