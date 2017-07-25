@@ -56,26 +56,11 @@ void InputSequenceGenerator::simulator()
         return lhs.time.second > rhs.time.second;
     });
     for (Assertion& asrt : asrtList) {
-        // cout << asrt.name << ": " << endl;
         path.clear();
         asrtFailedFlag = false;
         asrt.noSolution = false;
         if (!asrt.failed)
             fromActivatedPoint2AssertionFailed(asrt);
-        // cout << endl
-        //      << endl;
-    }
-    for (Assertion& asrt : asrtList) {
-        InputSequence& answer = answerDict[&asrt];
-        if (answer.size() == 0)
-            continue;
-        std::ofstream file(asrt.name + ".txt");
-        file << 0 << Pattern(inputSize()) << endl;
-        file << 1 << Pattern(inputSize()) << endl;
-        for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
-            file << 0 << *iit << endl;
-        }
-        file.close();
     }
     generateSolution();
     simulatedAnnealing();
@@ -90,11 +75,6 @@ void InputSequenceGenerator::generateSolution()
     finalAnswer.push_back(evalStartInput());
     rstTable.clear();
     rstTable.push_back(2);
-    // if (answerDict[&asrtList.front()].size() != 0) {
-    //     rstTable.push_back(finalAnswer.size() + answerDict[&asrtList.front()].size() + 1);
-    //     for (auto pit = answerDict[&asrtList.front()].begin(); pit != answerDict[&asrtList.front()].end(); ++pit)
-    //         finalAnswer.push_back(*pit);
-    // }
     for (Assertion& asrt : asrtList) {
         cout << asrt.name << " " << answerDict[&asrt].size() << endl;
         if (asrt.failed || asrt.noSolution)
@@ -173,11 +153,6 @@ void InputSequenceGenerator::simulatedAnnealing()
     cout << "Optimal length: " << opt.size() << endl;
     finalAnswer = opt;
     rstTable = optRstTable;
-    std::ofstream oo("opt.order");
-    for (auto od : optOrder) {
-        oo << od << endl;
-    }
-    oo.close();
 }
 
 std::string tmps;
@@ -271,9 +246,6 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
     current = undefState;
-    std::ofstream ff(name + ".out");
-    ff << endl
-       << endl;
     in2 = Pattern(inputSize(), 2);
     out2 = Pattern(outputSize(), 2);
     int tc = 2;
@@ -287,7 +259,6 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
         }
         this->input(*it);
         cout << current->label << "  " << in1 << "=>" << in2 << ", " << out1 << "=>" << out2 << endl;
-        ff << out2 << endl;
         for (Assertion& asrt : asrtList) {
             if (asrt.failed)
                 continue;
@@ -326,7 +297,6 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
         ++tc;
     }
 
-    ff.close();
     triggeredAssertion.clear();
 }
 
