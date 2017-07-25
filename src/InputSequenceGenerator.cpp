@@ -288,6 +288,7 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
 
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
+    current = undefState;
     std::ofstream ff(name + ".out");
     ff << endl
        << endl;
@@ -382,7 +383,7 @@ Pattern InputSequenceGenerator::evalStartInput()
 void InputSequenceGenerator::evalInitial2State()
 {
     std::queue< State* > bfsQueue;
-    State* S0 = this->getState(0);
+    State* S0 = this->initial;
     S0->layer = 0;
     bfsQueue.push(S0);
     bfsQueue.front()->traversed = true;
