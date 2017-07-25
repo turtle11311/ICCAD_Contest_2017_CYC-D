@@ -1,11 +1,13 @@
 #include "FiniteStateMachine.hpp"
 #include <iostream>
+#include <limits>
 #include <utility>
 using std::endl;
 using std::cout;
 
 namespace SVParser {
 FiniteStateMachine::FiniteStateMachine()
+    : undefState(new State(std::numeric_limits< int >::max()))
 {
 }
 

@@ -15,7 +15,10 @@ InputSequenceGenerator::InputSequenceGenerator()
     : _Base()
 {
     ::yyparse(*this);
-    current = getState(0);
+    Transition* trans = new Transition(Pattern(IPATTERNSIZE, 2), undefState, Pattern(OPATTERNSIZE, 2));
+    undefState->transitions.push_back(trans);
+    current = undefState;
+    initial = getState(initialNumber);
 }
 
 void InputSequenceGenerator::preprocess()
@@ -48,11 +51,10 @@ std::string name;
 void InputSequenceGenerator::simulator()
 {
     cout << "Simulator!\n";
-    cout << inputSize() << " " << outputSize() << endl;
     //std::vector< int > order = {1, 6};
     //assertionByOrder(order);
     asrtList.sort([](const Assertion& lhs, const Assertion& rhs) {
-    return lhs.time.second > rhs.time.second;
+        return lhs.time.second > rhs.time.second;
     });
     for (Assertion& asrt : asrtList) {
         // cout << asrt.name << ": " << endl;
@@ -286,7 +288,6 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
 
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
-    current = getState(0);
     std::ofstream ff(name + ".out");
     ff << endl
        << endl;
@@ -300,11 +301,11 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
         if (!separableMode) {
             if (rstTemp.front() == index) {
                 rstTemp.pop_front();
-                current = getState(0);
+                current = initial;
             }
         }
         this->input(*it);
-        cout << in1 << "=>" << in2 << ", " << out1 << "=>" << out2 << endl;
+        cout << current->label << "  " << in1 << "=>" << in2 << ", " << out1 << "=>" << out2 << endl;
         ff << out2 << endl;
         for (Assertion& asrt : asrtList) {
             if (asrt.failed)
@@ -339,6 +340,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 if (separableMode)
                     coverage << asrt.name << endl;
                 else {
+                    cout << asrt.name << " is Failed!!!" << endl;
                     asrt.failed = true;
                 }
             }

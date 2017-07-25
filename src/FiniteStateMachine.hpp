@@ -38,6 +38,9 @@ protected:
     std::set< State* > isolatedStates;
     std::map< int, std::vector< State* > > rlayerTable;
     State* current;
+    State* undefState;
+    int initialNumber;
+    State* initial;
     Pattern out1, out2;
     Pattern in1, in2;
 };

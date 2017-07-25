@@ -247,6 +247,11 @@ match_pattern
 
 non_blocking_assignment
         : port_identifier '<' '=' port_identifier
+        {
+            if (*$1 == "pstate" && *$4 != "nstate") {
+                FSM.initialNumber = paraTable[*$4];
+            }
+        }
         ;
 
 bit_pattern
