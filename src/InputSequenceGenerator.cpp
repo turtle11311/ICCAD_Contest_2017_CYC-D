@@ -8,7 +8,6 @@
 #include <sstream>
 #include <string>
 extern std::ofstream output;
-extern bool separableMode;
 namespace SVParser {
 
 InputSequenceGenerator::InputSequenceGenerator()
@@ -79,8 +78,7 @@ void InputSequenceGenerator::simulator()
         file.close();
     }
     generateSolution();
-    if (!separableMode)
-        simulatedAnnealing();
+    simulatedAnnealing();
 }
 
 void InputSequenceGenerator::generateSolution()
@@ -228,22 +226,6 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
-        // if (separableMode) {
-        //     asrt.failed = false;
-        //
-        //     coverage.open(name + ".coverage");
-        //     act.open(name + ".act");
-        //
-        //     assertionInspector(answerDict[&asrt]);
-        //
-        //     coverage.close();
-        //     act.close();
-        // } else {
-        //     // rstTable.push_back(finalAnswer.size() + answerDict[&asrt].size() + 1);
-        //     // for (auto pit = answerDict[&asrt].begin(); pit != answerDict[&asrt].end(); ++pit)
-        //     //     finalAnswer.push_back(*pit);
-        //     // assertionInspector(finalAnswer);
-        // }
     } else {
         asrt.noSolution = true;
     }
@@ -299,11 +281,9 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     std::list< int > rstTemp = rstTable;
     for (auto it = seq.begin(); it != seq.end(); ++it) {
         index++;
-        if (!separableMode) {
-            if (rstTemp.front() == index) {
-                rstTemp.pop_front();
-                current = initial;
-            }
+        if (rstTemp.front() == index) {
+            rstTemp.pop_front();
+            current = initial;
         }
         this->input(*it);
         cout << current->label << "  " << in1 << "=>" << in2 << ", " << out1 << "=>" << out2 << endl;
@@ -338,28 +318,14 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                     as->suc = true;
                 }
             } else if (as->slack >= asrt.time.second) {
-                if (separableMode)
-                    coverage << asrt.name << endl;
-                else {
-                    cout << asrt.name << " is Failed!!!" << endl;
-                    asrt.failed = true;
-                }
+                cout << asrt.name << " is Failed!!!" << endl;
+                asrt.failed = true;
             }
             ++(as->slack);
         }
         ++tc;
     }
 
-    if (separableMode) {
-        for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
-            Assertion& asrt = *as->target;
-            if (as->target->failed)
-                continue;
-            if (as->suc)
-                continue;
-            act << asrt.name << endl;
-        }
-    }
     ff.close();
     triggeredAssertion.clear();
 }
@@ -487,30 +453,15 @@ void InputSequenceGenerator::initial2ActivatedArc()
 
 void InputSequenceGenerator::outputAnswer()
 {
-    if (separableMode) {
-        for (Assertion& asrt : asrtList) {
-            InputSequence& answer = answerDict[&asrt];
-            if (answer.size() == 0)
-                continue;
-            std::ofstream file(asrt.name + ".txt");
-            file << 0 << Pattern(inputSize()) << endl;
-            file << 1 << Pattern(inputSize()) << endl;
-            for (auto iit = answer.begin(); iit != answer.end(); ++iit) {
-                file << 0 << *iit << endl;
-            }
-            file.close();
+    std::list< int > rstTemp = rstTable;
+    int index = 0;
+    for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
+        ++index;
+        if (rstTemp.front() == index) {
+            output << 1 << Pattern(inputSize()) << endl;
+            rstTemp.pop_front();
         }
-    } else {
-        std::list< int > rstTemp = rstTable;
-        int index = 0;
-        for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
-            ++index;
-            if (rstTemp.front() == index) {
-                output << 1 << Pattern(inputSize()) << endl;
-                rstTemp.pop_front();
-            }
-            output << 0 << *pit << endl;
-        }
+        output << 0 << *pit << endl;
     }
 }
 
