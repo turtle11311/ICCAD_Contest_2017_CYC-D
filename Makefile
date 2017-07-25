@@ -1,6 +1,6 @@
 MAKE = make
 CXX = g++
-CXXFLAGS += -Isrc/ --std=c++0x -g
+CXXFLAGS += -Isrc/ --std=c++11 -g
 LEX = flex
 YACC = bison
 VPATH = src/
@@ -25,14 +25,11 @@ simulation: simv
 simv: fsm.v test.v
 	vcs -sverilog fsm.v test.v
 
-separable:
-	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence -s true > /dev/null"
-
 output:
-	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence -s false > /dev/null"
+	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
 
 info:
-	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence -s false
+	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
 
 deploy: $(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
