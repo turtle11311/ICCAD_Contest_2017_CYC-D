@@ -240,12 +240,14 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
 
 void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
+    unsigned int time = 10;
     current = undefState;
     in2 = InputPattern(inputSize(), 2);
     out2 = Pattern(outputSize(), 2);
     for (auto it = seq.begin(); it != seq.end(); ++it) {
+        time += 20;
         this->input(*it);
-        cout << current->label << "  " << in1 << "=>" << in2 << ", " << out1 << "=>" << out2 << endl;
+        cout << in2 << ", " << out2 << " in state " << current->label << endl;
         for (Assertion& asrt : asrtList) {
             if (asrt.failed)
                 continue;
