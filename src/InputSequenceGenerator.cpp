@@ -251,7 +251,6 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     current = undefState;
     in2 = InputPattern(inputSize(), 2);
     out2 = Pattern(outputSize(), 2);
-    auto shit = seq.begin();
     for (auto it = seq.begin(); it != seq.end(); ++it, time += 20) {
         this->input(*it);
         cout << in2 << ", " << out2 << " at " << time << " in state " << current->label << endl;
@@ -285,15 +284,11 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                     as->suc = true;
                 }
             } else if (as->slack >= asrt.time.second) {
-                shit = it;
                 cout << asrt.name << " is Failed!!!" << endl;
                 asrt.failed = true;
             }
             ++(as->slack);
         }
-    }
-    if (++shit == seq.end()) {
-        cout << "Holy shit" << endl;
     }
     triggeredAssertion.clear();
 }
