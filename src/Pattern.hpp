@@ -34,7 +34,8 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const InputPattern& pattern);
     InputPattern(const size_t size = 0, value_type val = 0, bool reset = false);
     InputPattern(const Pattern& rhs, bool reset = false);
+    InputPattern& reset();
 
-    bool reset;
+    bool _reset;
 };
 } // namespace SVParser

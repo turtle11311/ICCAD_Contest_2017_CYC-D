@@ -45,6 +45,7 @@ private:
     void randomSwap4SA(int, int);
     void generateSolution();
     void assertionByOrder(std::vector< int >& order);
+    InputPattern evalSecondInput();
     InputPattern evalStartInput();
     InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;

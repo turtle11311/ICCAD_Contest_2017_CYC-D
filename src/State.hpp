@@ -34,7 +34,7 @@ public:
     Transition(const Transition& rhs);
     Transition(Pattern&& pattern, State* nState, Pattern&& out);
     const Transition& operator=(const Transition& rhs);
-    Pattern defaultPattern();
+    InputPattern defaultPattern();
 
     Pattern pattern;
     Pattern out;

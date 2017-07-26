@@ -42,7 +42,7 @@ void FiniteStateMachine::input(const InputPattern& pattern)
             break;
         }
     }
-    if (pattern.reset)
+    if (pattern._reset)
         current = initial;
 }
 

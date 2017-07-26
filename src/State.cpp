@@ -49,7 +49,7 @@ const Transition& Transition::operator=(const Transition& rhs)
     return *this;
 }
 
-Pattern Transition::defaultPattern()
+InputPattern Transition::defaultPattern()
 {
     return pattern.defaultPattern();
 }

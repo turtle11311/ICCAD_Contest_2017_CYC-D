@@ -73,12 +73,14 @@ void InputSequenceGenerator::generateSolution()
     }
     finalAnswer.clear();
     finalAnswer.push_back(evalStartInput());
+    finalAnswer.push_back(evalSecondInput().reset());
     for (Assertion& asrt : asrtList) {
         cout << asrt.name << " " << answerDict[&asrt].size() << endl;
         if (asrt.failed || asrt.noSolution)
             continue;
         cout << "pick." << endl;
-        finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
+        if (finalAnswer.size() != 2)
+            finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
         for (auto pit = answerDict[&asrt].begin(); pit != answerDict[&asrt].end(); ++pit)
             finalAnswer.push_back(*pit);
         assertionInspector(finalAnswer);
@@ -286,6 +288,28 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     }
 
     triggeredAssertion.clear();
+}
+
+InputPattern InputSequenceGenerator::evalSecondInput()
+{
+    Transition* selected = nullptr;
+    int maxHit = 0;
+    int index = 0;
+    Pattern::value_type triggerFlag;
+    for (Transition* trans : current->transitions) {
+        int hit = 0;
+        for (Assertion& asrt : asrtList) {
+            if (asrt.trigger.target == TargetType::OUT)
+                continue;
+            triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
+            index = asrt.trigger.index;
+            if (trans->out[index] == triggerFlag)
+                ++hit;
+        }
+        if (hit >= maxHit)
+            selected = trans, maxHit = hit;
+    }
+    return selected->defaultPattern();
 }
 
 InputPattern InputSequenceGenerator::evalStartInput()
