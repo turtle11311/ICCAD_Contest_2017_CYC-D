@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <utility>
 extern int yylex(void);
 extern int yylineno;
 extern char* yytext;
@@ -265,7 +266,7 @@ assertion_rule
         : assertion_identifier ':' assertion_property_statement
         {
             asrt.name = *$1;
-            FSM.asrtList.push_back(asrt);
+            FSM.asrtList.push_back(new Assertion(std::move(asrt)));
         }
         ;
 

@@ -27,6 +27,7 @@ class InputSequenceGenerator : protected FiniteStateMachine {
 
 public:
     InputSequenceGenerator();
+    ~InputSequenceGenerator();
     void simulator();
     void preprocess();
     void staticFindActivatedPoint(Assertion& asrt);
@@ -49,7 +50,7 @@ private:
     InputPattern evalStartInput();
     InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;
-    std::list< Assertion > asrtList;
+    std::list< Assertion* > asrtList;
     std::list< ActivatedPoint > path;
     bool asrtFailedFlag = false;
     ActivatedPoint targetAP;
