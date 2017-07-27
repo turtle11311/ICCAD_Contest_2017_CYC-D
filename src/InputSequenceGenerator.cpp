@@ -54,7 +54,6 @@ std::string name;
 
 void InputSequenceGenerator::simulator()
 {
-    cout << "Simulator!\n";
     asrtList.sort([](const Assertion* lhs, const Assertion* rhs) {
         return lhs->time.second > rhs->time.second;
     });
@@ -79,18 +78,21 @@ void InputSequenceGenerator::generateSolution()
     finalAnswer.push_back(evalSecondInput().reset());
     for (Assertion* asrt : asrtList) {
         careAsrt = asrt;
-        cout << asrt->name << " " << answerDict[asrt].size() << endl;
         if (asrt->failed || asrt->noSolution)
             continue;
-        cout << "pick." << endl;
         if (finalAnswer.size() != 2)
             finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
-        for (auto pit = answerDict[asrt].begin(); pit != answerDict[asrt].end(); ++pit)
+        InputPattern* last = &finalAnswer.back();
+        for (auto pit = answerDict[asrt].begin(); pit != answerDict[asrt].end(); ++pit) {
+            for (size_t i = 0; i < IPATTERNSIZE; ++i) {
+                (*pit)[i] = (*pit)[i] == 2 ? !(*last)[i] : (*pit)[i];
+            }
             finalAnswer.push_back(*pit);
+            last = &(*pit);
+        }
         triggeredAssertion.clear();
         assertionInspector(finalAnswer);
     }
-    cout << "Size: " << finalAnswer.size() << endl;
 }
 
 void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
@@ -117,8 +119,6 @@ void InputSequenceGenerator::simulatedAnnealing()
 
     int r = 0;
     while (temperature > 1.0) {
-        cout << "Local optimal length: " << local.size() << endl;
-
         // swap
         int i1 = rand() % asrtList.size();
         int i2;
@@ -131,81 +131,55 @@ void InputSequenceGenerator::simulatedAnnealing()
         generateSolution();
 
         // accept
-        cout << "Current length: " << finalAnswer.size() << endl;
         if (local.size() > finalAnswer.size()) {
             local = finalAnswer;
             if (opt.size() > finalAnswer.size()) {
                 opt = finalAnswer;
                 optOrder = curOrder;
             }
-        }
-        else {
+        } else {
             int s1 = finalAnswer.size(), s2 = local.size();
             int delta = abs(s1 - s2);
             float threshold = 1 / exp(delta / temperature);
             // condition accept
             if (((float)(rand() % 1000)) / 1000 < threshold) {
                 local = finalAnswer;
-            }
-            else {
+            } else {
                 randomSwap4SA(i1, i2);
             }
         }
         if (!((r++) % 100))
             temperature *= rate;
     }
-    cout << "Optimal length: " << opt.size() << endl;
     finalAnswer = opt;
 }
-
-std::string tmps;
-
-std::stringstream ss;
-std::list< std::string > PATH;
 
 void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 {
     bool signalFlag = asrt.event.target == TargetType::OUT ? true : false;
     bool triggerFlag = asrt.event.change == SignalEdge::ROSE ? true : false;
     unsigned int index = asrt.event.index;
-    // cout << "Activated target: " << ((asrt.trigger.target == TargetType::OUT) ? "out[" : "in[")
-    //      << asrt.trigger.index << "]"
-    //      << " is " << (asrt.trigger.change == SignalEdge::ROSE ? "rose" : "fell")
-    //      << endl;
-    // cout << "Terminate target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
-    //      << " is " << (triggerFlag ? "rose" : "fell")
-    //      << " in range[" << asrt.time.first << ":" << asrt.time.second << "]"
-    //      << "." << endl;
+
     bool res = false;
     if (signalFlag) {
         for (ActivatedPoint& ap : asrt.APList) {
-            ss.clear();
-            ss.str("");
-            PATH.clear();
             answerDict[&asrt].clear();
             res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.state, ap.transition1, ap.transition2, 1);
             if (res) {
-                // for (auto it = PATH.begin(); it != PATH.end(); ++it) {
-                //     cout << *it << endl;
-                // }
                 targetAP = ap;
-                // targetAP.printAP();
                 break;
             }
         }
     }
-    // cout << (res ? asrt.name + " Fail" : " QAQ") << endl;
 
     if (res) {
         answerDict[&asrt].pop_front();
-        answerDict[&asrt].push_front(targetAP.pattern2.defaultPattern());
-        // cout << "=====================================" << endl;
+        answerDict[&asrt].push_front(targetAP.pattern2);
         initial2ActivatedArc();
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
-    }
-    else {
+    } else {
         asrt.noSolution = true;
     }
     firstHalfAnswer.clear();
@@ -213,10 +187,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
 
 bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step)
 {
-    ss << current->label << " " << *t2 << endl;
-    getline(ss, tmps);
-    PATH.emplace_back(tmps);
-    sequence.push_back(t2->defaultPattern());
+    sequence.push_back(t2->pattern);
     if (step > asrt.time.second) {
         return true;
     }
@@ -231,7 +202,6 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
             outcome = true;
         }
         if (income && outcome) {
-            PATH.pop_back();
             sequence.pop_back();
             return false;
         }
@@ -242,7 +212,6 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
         if (res == true)
             return true;
     }
-    PATH.pop_back();
     sequence.pop_back();
     return false;
 }
@@ -255,7 +224,6 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     out2 = Pattern(outputSize(), 2);
     for (auto it = seq.begin(); it != seq.end(); ++it, time += 20) {
         this->input(*it);
-        cout << in2 << ", " << out2 << " at " << time << " in state " << current->label << endl;
         for (Assertion* asrt : asrtList) {
             if (asrt->failed)
                 continue;
@@ -263,10 +231,9 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             Pattern::value_type triggerFlag = (asrt->trigger.change == SignalEdge::ROSE) ? 1 : 0;
             bool signalFlag = (asrt->trigger.target == TargetType::OUT);
 
-            Pattern &pre = (signalFlag ? out1 : in1),
-                    &cur = (signalFlag ? out2 : in2);
+            Pattern& pre = (signalFlag ? out1 : in1),
+                     &cur = (signalFlag ? out2 : in2);
             if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
-                cout << asrt->name << " activated!!" << endl;
                 triggeredAssertion.push_back(AssertionStatus{0, asrt, false});
             }
         }
@@ -280,14 +247,12 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 size_t index = asrt.event.index;
                 Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
-                Pattern &pre = (signalFlag ? out1 : in1),
-                        &cur = (signalFlag ? out2 : in2);
+                Pattern& pre = (signalFlag ? out1 : in1),
+                         &cur = (signalFlag ? out2 : in2);
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
                 }
-            }
-            else if (as->slack >= asrt.time.second) {
-                cout << asrt.name << " is Failed!!!" << endl;
+            } else if (as->slack >= asrt.time.second) {
                 asrt.failed = true;
                 if (careAsrt->failed) {
                     seq.erase(++it, seq.end());
@@ -366,8 +331,6 @@ void InputSequenceGenerator::staticFindActivatedPoint(Assertion& asrt)
     bool signalFlag = asrt.trigger.target == TargetType::OUT ? true : false;
     bool trigger = asrt.trigger.change == SignalEdge::ROSE ? true : false;
     unsigned int index = asrt.trigger.index;
-    // cout << "Activated target: " << ((signalFlag) ? "out[" : "in[") << index << "]"
-    //      << " is " << (triggerFlag ? "rose" : "fell") << "." << endl;
     if (signalFlag)
         staticFindOutputSignalActivatedPoint(trigger, index, asrt.APList);
     else
@@ -426,16 +389,14 @@ void InputSequenceGenerator::initial2ActivatedArc()
             break;
         }
     }
-    // cout << "Layer: " << current->layer << " " << current->label << " " << *targetAP.transition1 << endl;
-    firstHalfAnswer.push_front(targetAP.pattern1.defaultPattern());
+    firstHalfAnswer.push_front(targetAP.pattern1);
     assert(current != nullptr);
     current->traversed = true;
     while (current->layer != 0) {
         for (State::From& from : current->fromList) {
             if (!from.state->traversed && (from.state->layer < current->layer)) {
                 current = from.state;
-                // cout << "Layer: " << current->layer << " " << current->label << " " << *from.transition << endl;
-                firstHalfAnswer.push_front(from.transition->defaultPattern());
+                firstHalfAnswer.push_front(from.transition->pattern);
                 break;
             }
         }
@@ -458,7 +419,7 @@ void InputSequenceGenerator::purgeState(int state)
                                                          trans->nState->fromList.end(),
                                                          [=](State::From& from) {
                                                              return from.state == it->second;
-                                                         }),
+                                          }),
                                           trans->nState->fromList.end());
         }
     }

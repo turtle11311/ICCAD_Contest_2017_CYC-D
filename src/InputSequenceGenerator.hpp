@@ -57,7 +57,6 @@ private:
     InputSequence firstHalfAnswer;
     std::list< AssertionStatus > triggeredAssertion;
     std::list< int > rstTable;
-    std::ofstream coverage, act;
     Assertion* careAsrt;
 };
 } // namespace SVParser
