@@ -15,7 +15,7 @@
 *.lex.*
 
 # executable file
-sequence_generator
+cadb036
 
 # test file folder
 test_cases/

@@ -4,7 +4,7 @@ CXXFLAGS += -Isrc/ --std=c++11 -g
 LEX = flex
 YACC = bison
 VPATH = src/
-BINARY = sequence_generator
+BINARY = cadb036
 CASE ?= tb1
 CASEDIR = test_cases/$(CASE)
 SERVER = cadb036@140.110.214.97
