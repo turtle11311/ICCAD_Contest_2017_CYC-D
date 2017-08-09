@@ -43,5 +43,6 @@ protected:
     State* initial;
     Pattern out1, out2;
     InputPattern in1, in2;
+    Transition* trans1, *trans2;
 };
 } // namespace SVParser

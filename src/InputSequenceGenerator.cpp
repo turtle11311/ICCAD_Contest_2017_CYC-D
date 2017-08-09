@@ -65,7 +65,6 @@ void InputSequenceGenerator::simulator()
         if (!asrt->failed)
             fromActivatedPoint2AssertionFailed(*asrt);
     }
-    generateSolution();
     simulatedAnnealing();
 }
 
@@ -109,12 +108,12 @@ void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
 
 void InputSequenceGenerator::simulatedAnnealing()
 {
+    generateSolution2();
     float temperature = 100.0f;
     float rate = 0.95f;
     InputSequence opt = finalAnswer;
     InputSequence local = finalAnswer;
     std::list< std::string > optOrder;
-
     int r = 0;
     while (temperature > 1.0) {
         cout << "Local optimal length: " << local.size() << endl;
@@ -128,7 +127,7 @@ void InputSequenceGenerator::simulatedAnnealing()
 
         std::list< std::string > curOrder;
         // generate input sequence
-        generateSolution();
+        generateSolution2();
 
         // accept
         cout << "Current length: " << finalAnswer.size() << endl;
@@ -295,6 +294,105 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 }
             }
             ++(as->slack);
+        }
+    }
+}
+
+void InputSequenceGenerator::generateSolution2()
+{
+    for (Assertion* asrt : asrtList) {
+        asrt->failed = false;
+    }
+    finalAnswer.clear();
+    finalAnswer.push_back(evalStartInput());
+    finalAnswer.push_back(evalSecondInput().reset());
+    auto upcomingAsrt = std::next(asrtList.begin());
+    for (Assertion* asrt : asrtList) {
+        careAsrt = asrt;
+        if (asrt->failed || asrt->noSolution)
+            continue;
+        if (finalAnswer.size() != 2)
+            finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
+        InputPattern* last = &finalAnswer.back();
+        for (auto pit = answerDict[asrt].begin(); pit != answerDict[asrt].end(); ++pit) {
+            for (size_t i = 0; i < IPATTERNSIZE; ++i) {
+                (*pit)[i] = (*pit)[i] == 2 ? !(*last)[i] : (*pit)[i];
+            }
+            finalAnswer.push_back(*pit);
+            last = &(*pit);
+        }
+        assertionInspector2(finalAnswer);
+        if (!(*upcomingAsrt)->failed) {
+            for (AssertionStatus& as : triggeredAssertion) {
+                if (as.target == *upcomingAsrt && !as.suc) {
+                    InputSequence seq;
+                    fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack);
+                    if (seq.size() == 1)
+                        continue;
+                    (*upcomingAsrt)->failed = true;
+                    for (auto pit = std::next(seq.begin()); pit != seq.end(); ++pit) {
+                        finalAnswer.push_back(*pit);
+                    }
+                    break;
+                }
+            }
+        }
+        triggeredAssertion.clear();
+        ++upcomingAsrt;
+    }
+}
+
+void InputSequenceGenerator::assertionInspector2(InputSequence& seq)
+{
+    unsigned int time = 30;
+    current = undefState;
+    in2 = InputPattern(inputSize(), 2);
+    out2 = Pattern(outputSize(), 2);
+    auto breakIt = seq.end();
+    for (auto it = seq.begin(); it != seq.end(); ++it, time += 20) {
+        this->input(*it);
+        for (Assertion* asrt : asrtList) {
+            if (asrt->failed)
+                continue;
+            size_t index = asrt->trigger.index;
+            Pattern::value_type triggerFlag = (asrt->trigger.change == SignalEdge::ROSE) ? 1 : 0;
+            bool signalFlag = (asrt->trigger.target == TargetType::OUT);
+
+            Pattern &pre = (signalFlag ? out1 : in1),
+                    &cur = (signalFlag ? out2 : in2);
+            if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
+                triggeredAssertion.push_back(AssertionStatus{0, asrt, false});
+            }
+        }
+        for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
+            Assertion& asrt = *as->target;
+            as->trans1 = trans1;
+            as->trans2 = trans2;
+            if (as->target->failed)
+                continue;
+            if (as->suc)
+                continue;
+            if (as->slack >= asrt.time.first && as->slack < asrt.time.second) {
+                size_t index = asrt.event.index;
+                Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
+                bool signalFlag = (asrt.event.target == TargetType::OUT);
+                Pattern &pre = (signalFlag ? out1 : in1),
+                        &cur = (signalFlag ? out2 : in2);
+                if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
+                    as->suc = true;
+                }
+            }
+            else if (as->slack >= asrt.time.second) {
+                asrt.failed = true;
+                if (careAsrt->failed) {
+                    breakIt = it;
+                }
+            }
+            ++(as->slack);
+        }
+        if (breakIt != seq.end()) {
+            seq.erase(++breakIt, seq.end());
+            return;
         }
     }
 }

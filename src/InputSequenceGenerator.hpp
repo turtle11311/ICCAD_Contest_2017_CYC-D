@@ -17,6 +17,7 @@ struct AssertionStatus {
     size_t slack;
     Assertion* target;
     bool suc;
+    Transition* trans1, *trans2;
 };
 
 typedef std::list< InputPattern > InputSequence;
@@ -37,6 +38,7 @@ private:
     void initial2ActivatedArc();
     void evalInitial2State();
     void assertionInspector(InputSequence& seq);
+    void assertionInspector2(InputSequence& seq);
     void staticFindOutputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
@@ -45,6 +47,7 @@ private:
     void simulatedAnnealing();
     void randomSwap4SA(int, int);
     void generateSolution();
+    void generateSolution2();
     void assertionByOrder(std::vector< int >& order);
     InputPattern evalSecondInput();
     InputPattern evalStartInput();

@@ -34,6 +34,7 @@ void FiniteStateMachine::input(const InputPattern& pattern)
 {
     in1 = in2;
     out1 = out2;
+    trans1 = trans2;
     in2 = pattern;
     if (pattern._reset)
         current = initial;
@@ -41,6 +42,7 @@ void FiniteStateMachine::input(const InputPattern& pattern)
         if (trans->pattern == pattern) {
             current = trans->nState;
             out2 = trans->out;
+            trans2 = trans;
             break;
         }
     }
