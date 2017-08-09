@@ -32,11 +32,12 @@ class Transition {
 public:
     Transition();
     Transition(const Transition& rhs);
-    Transition(Pattern&& pattern, State* nState, Pattern&& out);
+    Transition(InputPattern&& pattern, State* nState, Pattern&& out);
+    Transition(InputPattern& pattern, State* nState, Pattern& out);
     const Transition& operator=(const Transition& rhs);
     InputPattern defaultPattern();
 
-    Pattern pattern;
+    InputPattern pattern;
     Pattern out;
     State* nState;
 };

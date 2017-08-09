@@ -11,11 +11,21 @@ FiniteStateMachine::FiniteStateMachine()
 {
 }
 
-void FiniteStateMachine::insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out)
+void FiniteStateMachine::insesrtTransition(int state, InputPattern&& pattern, int nState, Pattern&& out)
 {
     State* nowState = getState(state), *nextState = getState(nState);
     nowState->transitions.push_back(
         new Transition(std::move(pattern), nextState, std::move(out)));
+
+    nextState->fromList.push_back(
+        State::From(nowState, nowState->transitions.back()));
+}
+
+void FiniteStateMachine::insesrtTransition(int state, InputPattern& pattern, int nState, Pattern& out)
+{
+    State* nowState = getState(state), *nextState = getState(nState);
+    nowState->transitions.push_back(
+        new Transition(pattern, nextState, out));
 
     nextState->fromList.push_back(
         State::From(nowState, nowState->transitions.back()));

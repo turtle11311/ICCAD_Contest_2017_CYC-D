@@ -33,7 +33,14 @@ Transition::Transition(const Transition& rhs)
 {
 }
 
-Transition::Transition(Pattern&& pattern, State* nState, Pattern&& out)
+Transition::Transition(InputPattern&& pattern, State* nState, Pattern&& out)
+    : pattern(pattern)
+    , nState(nState)
+    , out(out)
+{
+}
+
+Transition::Transition(InputPattern& pattern, State* nState, Pattern& out)
     : pattern(pattern)
     , nState(nState)
     , out(out)

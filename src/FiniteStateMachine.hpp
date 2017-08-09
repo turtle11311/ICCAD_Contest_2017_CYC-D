@@ -32,7 +32,8 @@ public:
     ~FiniteStateMachine();
 
 protected:
-    void insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out);
+    void insesrtTransition(int state, InputPattern&& pattern, int nState, Pattern&& out);
+    void insesrtTransition(int state, InputPattern& pattern, int nState, Pattern& out);
     size_t IPATTERNSIZE;
     size_t OPATTERNSIZE;
     std::set< State* > isolatedStates;

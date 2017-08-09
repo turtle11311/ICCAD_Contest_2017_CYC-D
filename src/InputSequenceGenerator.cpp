@@ -19,6 +19,15 @@ InputSequenceGenerator::InputSequenceGenerator()
     undefState->transitions.push_back(trans);
     current = undefState;
     initial = getState(initialNumber);
+    for (auto& node : (*this)) {
+        if (node.second == initial)
+            continue;
+        for (Transition* trans : initial->transitions) {
+            InputPattern nPattern = trans->pattern;
+            nPattern.reset();
+            insesrtTransition(node.second->label, nPattern, initial->label, trans->out);
+        }
+    }
 }
 
 InputSequenceGenerator::~InputSequenceGenerator()
@@ -138,16 +147,14 @@ void InputSequenceGenerator::simulatedAnnealing()
                 opt = finalAnswer;
                 optOrder = curOrder;
             }
-        }
-        else {
+        } else {
             int s1 = finalAnswer.size(), s2 = local.size();
             int delta = abs(s1 - s2);
             float threshold = 1 / exp(delta / temperature);
             // condition accept
             if (((float)(rand() % 1000)) / 1000 < threshold) {
                 local = finalAnswer;
-            }
-            else {
+            } else {
                 randomSwap4SA(i1, i2);
             }
         }
@@ -204,8 +211,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
-    }
-    else {
+    } else {
         asrt.noSolution = true;
     }
     firstHalfAnswer.clear();
@@ -263,8 +269,8 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             Pattern::value_type triggerFlag = (asrt->trigger.change == SignalEdge::ROSE) ? 1 : 0;
             bool signalFlag = (asrt->trigger.target == TargetType::OUT);
 
-            Pattern &pre = (signalFlag ? out1 : in1),
-                    &cur = (signalFlag ? out2 : in2);
+            Pattern& pre = (signalFlag ? out1 : in1),
+                     &cur = (signalFlag ? out2 : in2);
             if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                 cout << asrt->name << " activated!!" << endl;
                 triggeredAssertion.push_back(AssertionStatus{0, asrt, false});
@@ -280,13 +286,12 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 size_t index = asrt.event.index;
                 Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
-                Pattern &pre = (signalFlag ? out1 : in1),
-                        &cur = (signalFlag ? out2 : in2);
+                Pattern& pre = (signalFlag ? out1 : in1),
+                         &cur = (signalFlag ? out2 : in2);
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
                 }
-            }
-            else if (as->slack >= asrt.time.second) {
+            } else if (as->slack >= asrt.time.second) {
                 cout << asrt.name << " is Failed!!!" << endl;
                 asrt.failed = true;
                 if (careAsrt->failed) {
@@ -458,7 +463,7 @@ void InputSequenceGenerator::purgeState(int state)
                                                          trans->nState->fromList.end(),
                                                          [=](State::From& from) {
                                                              return from.state == it->second;
-                                                         }),
+                                          }),
                                           trans->nState->fromList.end());
         }
     }
