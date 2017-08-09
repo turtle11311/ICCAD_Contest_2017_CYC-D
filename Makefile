@@ -16,7 +16,7 @@ REMOTEDIR = lichen
 all: $(BINARY)
 
 test:
-	$(MAKE) -C $(CASEDIR) --makefile=../../Makefile simulation
+	tcsh -c "$(MAKE) -C $(CASEDIR) --makefile=../../Makefile simulation"
 
 simulation: simv
 	make -C ../../ output CASE=$(CASE)
