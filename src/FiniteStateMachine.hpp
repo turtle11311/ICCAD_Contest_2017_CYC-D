@@ -25,6 +25,7 @@ public:
     }
     void input(const InputPattern& pattern);
     State* getState(int state);
+    void printStateLayer();
     void setIsolatedState(int state);
     void resetTraversed();
     bool isIsolated(int state);
