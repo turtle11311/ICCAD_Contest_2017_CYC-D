@@ -207,6 +207,13 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     else {
         asrt.noSolution = true;
     }
+    // std::ofstream ff(asrt.name + ".ans", std::ios::out);
+    // ff << endl
+    //    << endl;
+    // for (auto pp : answerDict[&asrt]) {
+    //     ff << pp << endl;
+    // }
+    // ff.close();
     firstHalfAnswer.clear();
 }
 
@@ -306,30 +313,37 @@ void InputSequenceGenerator::generateSolution2()
     finalAnswer.clear();
     finalAnswer.push_back(evalStartInput());
     finalAnswer.push_back(evalSecondInput().reset());
-    auto upcomingAsrt = std::next(asrtList.begin());
+    upcomingAsrt = std::next(asrtList.begin());
+    std::list< Assertion* > _list;
     for (Assertion* asrt : asrtList) {
         careAsrt = asrt;
         if (asrt->failed || asrt->noSolution)
             continue;
-        if (finalAnswer.size() != 2)
-            finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
-        InputPattern* last = &finalAnswer.back();
-        for (auto pit = answerDict[asrt].begin(); pit != answerDict[asrt].end(); ++pit) {
-            for (size_t i = 0; i < IPATTERNSIZE; ++i) {
-                (*pit)[i] = (*pit)[i] == 2 ? !(*last)[i] : (*pit)[i];
+        if ((*_list.begin()) != asrt) {
+            // cout << asrt->name << " pick!\n";
+            if (finalAnswer.size() != 2)
+                finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
+            InputPattern* last = &finalAnswer.back();
+            for (auto pit = answerDict[asrt].begin(); pit != answerDict[asrt].end(); ++pit) {
+                for (size_t i = 0; i < IPATTERNSIZE; ++i) {
+                    (*pit)[i] = (*pit)[i] == 2 ? !(*last)[i] : (*pit)[i];
+                }
+                finalAnswer.push_back(*pit);
+                last = &(*pit);
             }
-            finalAnswer.push_back(*pit);
-            last = &(*pit);
+        }
+        else {
+            _list.pop_front();
         }
         assertionInspector2(finalAnswer);
+        cout << finalAnswer.size() << endl;
         if (!(*upcomingAsrt)->failed) {
             for (AssertionStatus& as : triggeredAssertion) {
                 if (as.target == *upcomingAsrt && !as.suc) {
                     InputSequence seq;
-                    fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack);
-                    if (seq.size() == 1)
+                    if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack))
                         continue;
-                    (*upcomingAsrt)->failed = true;
+                    _list.push_back(*upcomingAsrt);
                     for (auto pit = std::next(seq.begin()); pit != seq.end(); ++pit) {
                         finalAnswer.push_back(*pit);
                     }

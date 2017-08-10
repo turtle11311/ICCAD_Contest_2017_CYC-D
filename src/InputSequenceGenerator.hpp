@@ -17,7 +17,7 @@ struct AssertionStatus {
     size_t slack;
     Assertion* target;
     bool suc;
-    Transition* trans1, *trans2;
+    Transition *trans1, *trans2;
 };
 
 typedef std::list< InputPattern > InputSequence;
@@ -54,6 +54,7 @@ private:
     InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;
     std::list< Assertion* > asrtList;
+    std::list< Assertion* >::iterator upcomingAsrt;
     std::list< ActivatedPoint > path;
     bool asrtFailedFlag = false;
     ActivatedPoint targetAP;
