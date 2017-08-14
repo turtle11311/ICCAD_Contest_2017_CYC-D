@@ -18,6 +18,7 @@ public:
     };
     State(int label);
     ~State();
+    bool deadEnd();
 
     const int label;
     std::vector< Transition* > transitions;

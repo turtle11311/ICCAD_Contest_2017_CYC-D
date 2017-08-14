@@ -43,6 +43,7 @@ private:
     void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
     bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step);
+    bool fromCurrent2Arc(Assertion&, InputSequence&, ActivatedPoint&);
     void purgeState(int state);
     void simulatedAnnealing();
     void randomSwap4SA(int, int);

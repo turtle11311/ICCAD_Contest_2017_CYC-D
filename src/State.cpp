@@ -17,6 +17,15 @@ State::State(int label)
 {
 }
 
+bool State::deadEnd()
+{
+    for (auto from : fromList) {
+        if (!from.state->traversed)
+            return false;
+    }
+    return true;
+}
+
 State::~State()
 {
     std::for_each(transitions.begin(), transitions.end(), std::default_delete< Transition >());
@@ -56,8 +65,8 @@ InputPattern Transition::defaultPattern()
 
 std::ostream& operator<<(std::ostream& os, const Transition& transition)
 {
-    const Pattern& match = transition.pattern,
-                   &out = transition.out;
+    const Pattern &match = transition.pattern,
+                  &out = transition.out;
     return os << match << ": begin nstate=S" << transition.nState->label << "; out=" << out << "; end";
 }
 } // namespace SVParser
