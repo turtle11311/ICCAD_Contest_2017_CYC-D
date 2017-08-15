@@ -108,7 +108,16 @@ void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
 
 void InputSequenceGenerator::simulatedAnnealing()
 {
+    // int counter = 0;
+    // while (counter++ < 100) {
+    //     int i1 = rand() % asrtList.size();
+    //     int i2;
+    //     while (i1 == (i2 = rand() % asrtList.size()))
+    //         ;
+    //     randomSwap4SA(i1, i2);
+    // }
     generateSolution2();
+    // return;
     float temperature = 100.0f;
     float rate = 0.95f;
     InputSequence opt = finalAnswer;
@@ -288,7 +297,9 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 
 void InputSequenceGenerator::generateSolution2()
 {
+    cout << "=================================================\n";
     for (Assertion* asrt : asrtList) {
+        cout << asrt->name << endl;
         asrt->failed = false;
     }
     finalAnswer.clear();
@@ -296,66 +307,78 @@ void InputSequenceGenerator::generateSolution2()
     finalAnswer.push_back(evalSecondInput().reset());
     upcomingAsrt = std::next(asrtList.begin());
     std::list< Assertion* > _list;
-
+    current = initial;
     for (Assertion* asrt : asrtList) {
         careAsrt = asrt;
-        if (asrt->failed || asrt->noSolution)
-            continue;
-        if ((*_list.begin()) != asrt) {
-            // try from current to default arc
-            bool canFromCur2Arc = false;
-            InputSequence seq1, seq2;
-            for (auto arc = asrt->arcIt; arc != asrt->APList.end(); ++arc) {
-                seq1.clear();
-                seq2.clear();
-                if (fromCurrent2Arc(*asrt, seq1, *arc)) {
-                    if (fromActivatedPoint2AssertionOutputSignalFailed(*asrt, seq2, arc->state, arc->transition1, arc->transition2, 1)) {
-                        if (seq1.size() + seq2.size() >= answerDict[asrt].size())
-                            continue;
-                        cout << "got it\n";
-                        canFromCur2Arc = true;
-                        for (auto pit = seq1.begin(); pit != seq1.end(); ++pit)
-                            finalAnswer.push_back(*pit);
-                        finalAnswer.push_back(arc->pattern2.defaultPattern());
-                        for (auto pit = std::next(seq2.begin()); pit != seq2.end(); ++pit)
-                            finalAnswer.push_back(*pit);
-                        break;
+        cout << "Target: " << careAsrt->name << endl;
+        cout << "upcoming assertion: " << (*upcomingAsrt)->name << endl;
+        if (!asrt->failed && !asrt->noSolution) {
+            if ((*_list.begin()) != asrt) {
+                cout << "pick: " << asrt->name << endl;
+                // try from current to default arc
+                bool canFromCur2Arc = false;
+                InputSequence seq1, seq2;
+                for (auto arc = asrt->arcIt; arc != asrt->APList.end(); ++arc) {
+                    seq1.clear();
+                    seq2.clear();
+                    if (fromCurrent2Arc(*asrt, seq1, *arc)) {
+                        if (fromActivatedPoint2AssertionOutputSignalFailed(*asrt, seq2, arc->state, arc->transition1, arc->transition2, 1)) {
+                            if (seq1.size() + seq2.size() >= answerDict[asrt].size())
+                                continue;
+                            cout << "default length: " << answerDict[asrt].size() << " | current to failed length: " << seq1.size() + seq2.size() << endl;
+                            cout << "current lenth: " << finalAnswer.size() << endl;
+                            canFromCur2Arc = true;
+                            for (auto pit = seq1.begin(); pit != seq1.end(); ++pit)
+                                finalAnswer.push_back(*pit);
+                            finalAnswer.push_back(arc->pattern2.defaultPattern());
+                            for (auto pit = std::next(seq2.begin()); pit != seq2.end(); ++pit)
+                                finalAnswer.push_back(*pit);
+                            break;
+                        }
+                    }
+                }
+                // can't from current to arc
+                if (!canFromCur2Arc) {
+                    cout << "can't\n";
+                    if (finalAnswer.size() != 2)
+                        finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
+                    InputPattern* last = &finalAnswer.back();
+                    for (auto pit = answerDict[asrt].begin(); pit != answerDict[asrt].end(); ++pit) {
+                        for (size_t i = 0; i < IPATTERNSIZE; ++i) {
+                            (*pit)[i] = (*pit)[i] == 2 ? !(*last)[i] : (*pit)[i];
+                        }
+                        finalAnswer.push_back(*pit);
+                        last = &(*pit);
                     }
                 }
             }
-            // can't from current to arc
-            if (!canFromCur2Arc) {
-                if (finalAnswer.size() != 2)
-                    finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
-                InputPattern* last = &finalAnswer.back();
-                for (auto pit = answerDict[asrt].begin(); pit != answerDict[asrt].end(); ++pit) {
-                    for (size_t i = 0; i < IPATTERNSIZE; ++i) {
-                        (*pit)[i] = (*pit)[i] == 2 ? !(*last)[i] : (*pit)[i];
-                    }
-                    finalAnswer.push_back(*pit);
-                    last = &(*pit);
-                }
+            else {
+                _list.pop_front();
             }
         }
-        else {
-            _list.pop_front();
-        }
+        cout << "origin answer: " << finalAnswer.size() << endl;
         assertionInspector2(finalAnswer);
-        cout << finalAnswer.size() << endl;
-        if (!(*upcomingAsrt)->failed) {
+        cout << "cut answer: " << finalAnswer.size() << endl;
+        State* cur = current;
+        bool gain = false;
+        if (!(*upcomingAsrt)->failed && !(*upcomingAsrt)->noSolution) {
             for (AssertionStatus& as : triggeredAssertion) {
                 if (as.target == *upcomingAsrt && !as.suc) {
                     InputSequence seq;
-                    if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack))
+                    if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, cur, as.trans1, as.trans2, as.slack))
                         continue;
                     _list.push_back(*upcomingAsrt);
                     for (auto pit = std::next(seq.begin()); pit != seq.end(); ++pit) {
                         finalAnswer.push_back(*pit);
                     }
+                    cout << "gain " << (*upcomingAsrt)->name << ", " << seq.size() - 1 << " plus\n";
+                    gain = true;
                     break;
                 }
             }
         }
+        if (!gain)
+            cout << "no gain\n";
         triggeredAssertion.clear();
         ++upcomingAsrt;
     }
@@ -368,7 +391,9 @@ void InputSequenceGenerator::assertionInspector2(InputSequence& seq)
     in2 = InputPattern(inputSize(), 2);
     out2 = Pattern(outputSize(), 2);
     auto breakIt = seq.end();
+    int counter = 0;
     for (auto it = seq.begin(); it != seq.end(); ++it, time += 20) {
+        ++counter;
         this->input(*it);
         for (Assertion* asrt : asrtList) {
             if (asrt->failed)
@@ -380,6 +405,7 @@ void InputSequenceGenerator::assertionInspector2(InputSequence& seq)
             Pattern &pre = (signalFlag ? out1 : in1),
                     &cur = (signalFlag ? out2 : in2);
             if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
+                cout << "Trigger: " << asrt->name << " at " << counter << endl;
                 triggeredAssertion.push_back(AssertionStatus{0, asrt, false});
             }
         }
@@ -399,10 +425,12 @@ void InputSequenceGenerator::assertionInspector2(InputSequence& seq)
                         &cur = (signalFlag ? out2 : in2);
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
+                    cout << "Success: " << as->target->name << endl;
                 }
             }
             else if (as->slack >= asrt.time.second) {
                 asrt.failed = true;
+                cout << asrt.name << " failed at " << counter << endl;
                 if (careAsrt->failed) {
                     breakIt = it;
                 }
@@ -545,21 +573,24 @@ bool InputSequenceGenerator::fromCurrent2Arc(Assertion& asrt, InputSequence& seq
             cur->traversed = true;
             seq.push_front(arc.pattern1.defaultPattern());
             // first back trace state is the current
-            if (cur == current)
+            if (cur == current) {
+                // cout << "S" << current->label << endl;
                 return true;
+            }
             break;
         }
     }
     assert(cur != nullptr);
     while (!cur->deadEnd() && cur != initial) {
         // can't get shorter ans
-        if (seq.size() + 1 > asrt.arcIt->state->layer)
+        if (seq.size() >= asrt.arcIt->state->layer)
             return false;
         else {
         }
         for (State::From& from : cur->fromList) {
             // try to choose the trans from current
             if (from.state == current) {
+                // cout << "S" << current->label << endl;
                 seq.push_front(from.transition->defaultPattern());
                 return true;
             }
