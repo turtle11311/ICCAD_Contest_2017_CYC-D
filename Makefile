@@ -1,6 +1,6 @@
 MAKE = make
 CXX = g++
-CXXFLAGS += -Isrc/ --std=c++11 -g
+CXXFLAGS += -Isrc/ --std=c++11 -O3
 LEX = flex
 YACC = bison
 VPATH = src/
@@ -8,22 +8,24 @@ BINARY = cadb036
 CASE ?= tb1
 CASEDIR = test_cases/$(CASE)
 SERVER = cadb036@140.110.214.97
+AUTOTEST = plugin/autotest
 REMOTEDIR = lichen
 
-.PHONY: all clean test simulation output deploy info
+.PHONY: all clean test simulation output deploy gentest info
 
 
 all: $(BINARY)
 
-test:
-	tcsh -c "$(MAKE) -C $(CASEDIR) --makefile=../../Makefile simulation"
+simulation: $(CASEDIR)/simv output
+	cd $(CASEDIR)
+	tcsh -c "cd $(CASEDIR); ./simv"
 
-simulation: simv
-	make -C ../../ output CASE=$(CASE)
-	./simv
+gentest: output
+	./$(AUTOTEST) $(CASE)
 
-simv: fsm.v test.v
-	vcs -sverilog fsm.v test.v
+$(CASEDIR)/simv: gentest $(CASEDIR)/fsm.v $(CASEDIR)/test.v
+	$(RM) -rf csrc/ simv.daidir simv ucli.key
+	tcsh -c "vcs -sverilog $(CASEDIR)/*.v -Mdir=$(CASEDIR)/csrc -o $@"
 
 output:
 	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
