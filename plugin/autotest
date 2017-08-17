@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+if [ $# -lt 1 ]; then
+    echo "this program"
+fi
+
+cd test_cases/$1
+
+input_length=$(sed -n -e '3p' fsm.v | sed -n -r -e 's/input \[([0-9]+):([0-9]+)\] [a-zA-Z]+;/\1/p')
+
+output_length=$(sed -n -e '4p' fsm.v | sed -n -r -e 's/output \[([0-9]+):([0-9]+)\] [a-zA-Z]+;/\1/p')
+
+sequence_length=$(wc input_sequence | cut -d ' ' -f 2)
+
+input_length=$(($input_length + 1))
+output_length=$(($output_length + 1))
+
+echo "module test;
+parameter input_len = $input_length, input_depth = $sequence_length, output_len = $output_length;
+
+reg clk = 0 ;
+reg rst = 0 ;
+reg [input_len-1:0] in;
+integer i ;
+wire [output_len-1:0]out;
+reg [input_len:0] mem[0:input_depth-1];
+
+ fsm f1(clk, rst, in, out);
+
+
+always #10 clk ++;
+
+initial begin
+   \$readmemb(\"input_sequence\", mem);
+   # 1;
+   for (i= 0 ; i < input_depth; i = i + 1) begin
+     #20  {rst, in} = mem[i];
+   end
+  #20 \$finish;
+end
+endmodule" > test.v
