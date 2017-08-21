@@ -11,25 +11,21 @@ SERVER = cadb036@140.110.214.97
 AUTOTEST = plugin/autotest
 REMOTEDIR = lichen
 
-.PHONY: all clean test simulation output deploy simv gentest info
+.PHONY: all clean test simulation output deploy gentest info
 
 
 all: $(BINARY)
 
-test:
-	tcsh -c "$(MAKE) -C $(CASEDIR) --makefile=../../Makefile simulation"
+simulation: $(CASEDIR)/simv output
+	cd $(CASEDIR)
+	tcsh -c "cd $(CASEDIR); ./simv"
 
-simulation: simv
-	make -C ../../ output CASE=$(CASE)
-	./simv
-
-simv: fsm.v test.v
-	make -C ../../ gentest CASE=$(CASE)
-	$(RM) -rf csrc/ simv.daidir simv ucli.key
-	vcs -sverilog $^
-
-gentest:
+gentest: output
 	./$(AUTOTEST) $(CASE)
+
+$(CASEDIR)/simv: gentest $(CASEDIR)/fsm.v $(CASEDIR)/test.v
+	$(RM) -rf csrc/ simv.daidir simv ucli.key
+	tcsh -c "vcs -sverilog $(CASEDIR)/*.v -o $@"
 
 output:
 	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
