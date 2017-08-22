@@ -25,7 +25,7 @@ gentest: output
 
 $(CASEDIR)/simv: gentest $(CASEDIR)/fsm.v $(CASEDIR)/test.v
 	$(RM) -rf csrc/ simv.daidir simv ucli.key
-	tcsh -c "vcs -sverilog $(CASEDIR)/*.v -o $@"
+	tcsh -c "vcs -sverilog $(CASEDIR)/*.v -Mdir=$(CASEDIR) -o $@"
 
 output:
 	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
