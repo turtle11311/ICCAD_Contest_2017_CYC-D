@@ -23,6 +23,7 @@ public:
     Pattern(const char* str);
     Pattern(const std::string& str);
     const Pattern& operator=(const Pattern& rhs);
+    static Pattern random(size_t size);
     bool operator==(const Pattern& rhs);
     Pattern defaultPattern();
 };
