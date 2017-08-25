@@ -137,16 +137,14 @@ void InputSequenceGenerator::simulatedAnnealing()
                 opt = finalAnswer;
                 optOrder = curOrder;
             }
-        }
-        else {
+        } else {
             int s1 = finalAnswer.size(), s2 = local.size();
             int delta = abs(s1 - s2);
             float threshold = 1 / exp(delta / temperature);
             // condition accept
             if (((float)(rand() % 1000)) / 1000 < threshold) {
                 local = finalAnswer;
-            }
-            else {
+            } else {
                 randomSwap4SA(i1, i2);
             }
         }
@@ -182,7 +180,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
             ss.str("");
             PATH.clear();
             answerDict[&asrt].clear();
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.state, ap.transition1, ap.transition2, 1);
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap.state, ap.transition1, ap.transition2, 0);
             if (res) {
                 // for (auto it = PATH.begin(); it != PATH.end(); ++it) {
                 //     cout << *it << endl;
@@ -203,8 +201,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
             answerDict[&asrt].push_front(*pit);
         }
-    }
-    else {
+    } else {
         asrt.noSolution = true;
     }
     // std::ofstream ff(asrt.name + ".ans", std::ios::out);
@@ -269,8 +266,8 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             Pattern::value_type triggerFlag = (asrt->trigger.change == SignalEdge::ROSE) ? 1 : 0;
             bool signalFlag = (asrt->trigger.target == TargetType::OUT);
 
-            Pattern &pre = (signalFlag ? out1 : in1),
-                    &cur = (signalFlag ? out2 : in2);
+            Pattern& pre = (signalFlag ? out1 : in1),
+                     &cur = (signalFlag ? out2 : in2);
             if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                 cout << asrt->name << " activated!!" << endl;
                 triggeredAssertion.push_back(AssertionStatus{0, asrt, false});
@@ -282,17 +279,16 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 continue;
             if (as->suc)
                 continue;
-            if (as->slack >= asrt.time.first && as->slack < asrt.time.second) {
+            if (as->slack >= asrt.time.first && as->slack <= asrt.time.second) {
                 size_t index = asrt.event.index;
                 Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
-                Pattern &pre = (signalFlag ? out1 : in1),
-                        &cur = (signalFlag ? out2 : in2);
+                Pattern& pre = (signalFlag ? out1 : in1),
+                         &cur = (signalFlag ? out2 : in2);
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
                 }
-            }
-            else if (as->slack >= asrt.time.second) {
+            } else if (as->slack > asrt.time.second) {
                 cout << asrt.name << " is Failed!!!" << endl;
                 asrt.failed = true;
                 if (careAsrt->failed) {
@@ -570,7 +566,7 @@ void InputSequenceGenerator::purgeState(int state)
                                                          trans->nState->fromList.end(),
                                                          [=](State::From& from) {
                                                              return from.state == it->second;
-                                                         }),
+                                          }),
                                           trans->nState->fromList.end());
         }
     }
