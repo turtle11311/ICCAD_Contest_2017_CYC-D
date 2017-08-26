@@ -20,7 +20,7 @@ struct AssertionStatus {
     Transition* trans1, *trans2;
 };
 
-typedef std::list< InputPattern > InputSequence;
+typedef std::vector< InputPattern > InputSequence;
 
 class InputSequenceGenerator : protected FiniteStateMachine {
     typedef FiniteStateMachine _Base;

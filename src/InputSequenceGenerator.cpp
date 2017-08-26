@@ -29,6 +29,8 @@ InputSequenceGenerator::InputSequenceGenerator()
     undefState->transitions.push_back(trans);
     current = undefState;
     initial = getState(initialNumber);
+
+    firstHalfAnswer.reserve(20);
 }
 
 InputSequenceGenerator::~InputSequenceGenerator()
@@ -116,7 +118,7 @@ void InputSequenceGenerator::simulatedAnnealing()
     std::list< Assertion* > optOrder;
     int r = 0;
     while (temperature > 1.0) {
-
+        LOG4CXX_TRACE(logger, "<========= new try =========>");
         // swap
         int i1 = rand() % asrtList.size();
         int i2;
@@ -133,6 +135,7 @@ void InputSequenceGenerator::simulatedAnnealing()
             if (opt.size() > finalAnswer.size()) {
                 opt = finalAnswer;
                 optOrder = asrtList;
+                LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
             }
         } else {
             int s1 = finalAnswer.size(), s2 = local.size();
@@ -174,12 +177,9 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     }
 
     if (res) {
-        answerDict[&asrt].pop_front();
-        answerDict[&asrt].push_front(targetAP.pattern2.defaultPattern());
+        answerDict[&asrt].front() = targetAP.pattern2.defaultPattern();
         initial2ActivatedArc();
-        for (auto pit = firstHalfAnswer.rbegin(); pit != firstHalfAnswer.rend(); ++pit) {
-            answerDict[&asrt].push_front(*pit);
-        }
+        answerDict[&asrt].insert(answerDict[&asrt].begin(), firstHalfAnswer.rbegin(), firstHalfAnswer.rend());
     } else {
         asrt.noSolution = true;
     }
@@ -219,6 +219,7 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
 
 void InputSequenceGenerator::generateSolution()
 {
+    static const LoggerPtr logger = Logger::getLogger("IGS.genAnswer");
     for (Assertion* asrt : asrtList) {
         asrt->failed = false;
     }
@@ -226,12 +227,13 @@ void InputSequenceGenerator::generateSolution()
     finalAnswer.push_back(evalStartInput());
     finalAnswer.push_back(evalSecondInput().reset());
     upcomingAsrt = std::next(asrtList.begin());
-    std::list< Assertion* > _list;
+    Assertion* holder = nullptr;
     for (Assertion* asrt : asrtList) {
         careAsrt = asrt;
         if (asrt->failed || asrt->noSolution)
             continue;
-        if ((*_list.begin()) != asrt) {
+        if (holder != asrt) {
+            LOG4CXX_TRACE(logger, format("%1% is picked") % asrt->name);
             if (finalAnswer.size() != 2)
                 finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
             InputPattern* last = &finalAnswer.back();
@@ -243,7 +245,7 @@ void InputSequenceGenerator::generateSolution()
                 last = &(*pit);
             }
         } else {
-            _list.pop_front();
+            holder = nullptr;
         }
         assertionInspector(finalAnswer);
         if (!(*upcomingAsrt)->failed) {
@@ -252,10 +254,9 @@ void InputSequenceGenerator::generateSolution()
                     InputSequence seq;
                     if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack))
                         continue;
-                    _list.push_back(*upcomingAsrt);
-                    for (auto pit = std::next(seq.begin()); pit != seq.end(); ++pit) {
-                        finalAnswer.push_back(*pit);
-                    }
+                    holder = *upcomingAsrt;
+                    LOG4CXX_TRACE(logger, format("%1% is picked") % as.target->name);
+                    finalAnswer.insert(finalAnswer.end(), ++seq.begin(), seq.end());
                     break;
                 }
             }
@@ -446,14 +447,14 @@ void InputSequenceGenerator::initial2ActivatedArc()
             break;
         }
     }
-    firstHalfAnswer.push_front(targetAP.pattern1.defaultPattern());
+    firstHalfAnswer.push_back(targetAP.pattern1.defaultPattern());
     assert(current != nullptr);
     current->traversed = true;
     while (current->layer != 0) {
         for (State::From& from : current->fromList) {
             if (!from.state->traversed && (from.state->layer < current->layer)) {
                 current = from.state;
-                firstHalfAnswer.push_front(from.transition->defaultPattern());
+                firstHalfAnswer.push_back(from.transition->defaultPattern());
                 break;
             }
         }
