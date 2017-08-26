@@ -92,6 +92,11 @@ InputPattern::InputPattern(const Pattern& rhs, bool reset)
 {
 }
 
+InputPattern InputPattern::random(size_t size)
+{
+    return InputPattern(_Base::random(size));
+}
+
 InputPattern& InputPattern::reset()
 {
     this->_reset = true;

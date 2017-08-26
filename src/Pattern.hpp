@@ -36,6 +36,7 @@ public:
     InputPattern(const size_t size = 0, value_type val = 0, bool reset = false);
     InputPattern(const Pattern& rhs, bool reset = false);
     InputPattern& reset();
+    static InputPattern random(size_t size);
 
     bool _reset;
 };
