@@ -194,7 +194,7 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
     if (step > asrt.time.second) {
         return true;
     }
-    if (step > asrt.time.first) {
+    if (step >= asrt.time.first) {
         bool income = false, outcome = false;
         size_t index = asrt.event.index;
 
@@ -349,7 +349,7 @@ void InputSequenceGenerator::assertionInspector2(InputSequence& seq)
                 continue;
             if (as->suc)
                 continue;
-            if (as->slack >= asrt.time.first && as->slack < asrt.time.second) {
+            if (as->slack >= asrt.time.first && as->slack <= asrt.time.second) {
                 size_t index = asrt.event.index;
                 Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
@@ -358,7 +358,7 @@ void InputSequenceGenerator::assertionInspector2(InputSequence& seq)
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
                 }
-            } else if (as->slack >= asrt.time.second) {
+            } else if (as->slack > asrt.time.second) {
                 asrt.failed = true;
                 if (careAsrt->failed) {
                     breakIt = it;
