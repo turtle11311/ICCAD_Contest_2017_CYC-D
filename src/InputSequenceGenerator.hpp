@@ -51,8 +51,8 @@ private:
     InputPattern evalStartInput();
     InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;
-    std::list< Assertion* > asrtList;
-    std::list< Assertion* >::iterator upcomingAsrt;
+    std::vector< Assertion* > asrtList;
+    std::vector< Assertion* >::iterator upcomingAsrt;
     std::list< ActivatedPoint > path;
     bool asrtFailedFlag = false;
     ActivatedPoint targetAP;

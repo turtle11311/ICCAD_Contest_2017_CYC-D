@@ -54,7 +54,7 @@ void InputSequenceGenerator::preprocess()
 
 void InputSequenceGenerator::assertionByOrder(std::vector< int >& order)
 {
-    asrtList.sort([&order](const Assertion* lhs, const Assertion* rhs) {
+    std::sort(asrtList.begin(), asrtList.end(), [&order](const Assertion* lhs, const Assertion* rhs) {
         int a, b;
         sscanf(lhs->name.c_str(), "assertion_rule%d", &a);
         sscanf(rhs->name.c_str(), "assertion_rule%d", &b);
@@ -66,7 +66,7 @@ std::string name;
 
 void InputSequenceGenerator::simulator()
 {
-    asrtList.sort([](const Assertion* lhs, const Assertion* rhs) {
+    std::sort(asrtList.begin(), asrtList.end(), [](const Assertion* lhs, const Assertion* rhs) {
         return lhs->time.second > rhs->time.second;
     });
     for (Assertion* asrt : asrtList) {
@@ -84,16 +84,7 @@ void InputSequenceGenerator::simulator()
 
 void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
 {
-    int i = 0;
-    std::list< Assertion* >::iterator it1, it2;
-    for (auto it = asrtList.begin(); it != asrtList.end(); ++it) {
-        if (i1 == i)
-            it1 = it;
-        else if (i2 == i)
-            it2 = it;
-        ++i;
-    }
-    std::swap(*it1, *it2);
+    std::swap(asrtList[i1], asrtList[i2]);
 }
 
 void InputSequenceGenerator::simulatedAnnealing()
@@ -115,7 +106,7 @@ void InputSequenceGenerator::simulatedAnnealing()
     const int TIMES_PER_ROUND = 200;
     InputSequence opt = finalAnswer;
     size_t localSize = finalAnswer.size();
-    std::list< Assertion* > optOrder;
+    std::vector< Assertion* > optOrder;
     int r = 0;
     while (temperature > 1.0) {
         LOG4CXX_TRACE(logger, "<========= new try =========>");
