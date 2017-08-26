@@ -17,6 +17,8 @@ using log4cxx::Logger;
 using boost::format;
 
 extern std::ofstream output;
+extern bool openSA;
+
 namespace SVParser {
 
 InputSequenceGenerator::InputSequenceGenerator()
@@ -72,7 +74,10 @@ void InputSequenceGenerator::simulator()
         if (!asrt->failed)
             fromActivatedPoint2AssertionFailed(*asrt);
     }
-    simulatedAnnealing();
+    generateSolution();
+    if (openSA) {
+        simulatedAnnealing();
+    }
 }
 
 void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
@@ -103,7 +108,6 @@ void InputSequenceGenerator::simulatedAnnealing()
     std::function< float() > accept = std::bind(
         std::uniform_real_distribution<>(0, 1),
         randEng);
-    generateSolution();
     float temperature = 100.0f;
     const float RATE = 0.95f;
     const int TIMES_PER_ROUND = 200;

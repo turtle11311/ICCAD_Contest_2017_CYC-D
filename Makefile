@@ -6,6 +6,7 @@ YACC = bison
 VPATH = src/
 BINARY = cadb036
 CASE ?= tb1
+ARGS ?= ""
 CASEDIR = test_cases/$(CASE)
 SERVER = cadb036@140.110.214.97
 AUTOTEST = plugin/autotest
@@ -23,19 +24,19 @@ gentest: output
 	./$(AUTOTEST) $(CASE)
 
 test:
-	make simulation CASE=tb1 | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb1/input_sequence
-	make simulation CASE=tb2 | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb2/input_sequence
-	make simulation CASE=tb3 | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb3/input_sequence
+	make simulation CASE=tb1 ARGS=$(ARGS) | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb1/input_sequence
+	make simulation CASE=tb2 ARGS=$(ARGS) | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb2/input_sequence
+	make simulation CASE=tb3 ARGS=$(ARGS) | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb3/input_sequence
 
 $(CASEDIR)/simv: gentest $(CASEDIR)/fsm.v $(CASEDIR)/test.v
 	$(RM) -rf csrc/ simv.daidir simv ucli.key
 	tcsh -c "vcs -sverilog $(CASEDIR)/*.v -Mdir=$(CASEDIR)/csrc -o $@"
 
 output:
-	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence > /dev/null"
+	bash -c "time ./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence $(ARGS) > /dev/null"
 
 info:
-	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence
+	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence $(ARGS)
 
 deploy: $(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"

@@ -22,10 +22,11 @@ extern FILE* yyin;
 
 std::ofstream output;
 
-int assertionID = 0;
-
 int ptnSize;
 int* state = new int;
+
+bool openSA = true;
+
 std::vector< Pattern > inputSequence;
 std::vector< unsigned int > rstRecord;
 std::vector< int > layerTable;
@@ -63,7 +64,7 @@ void parseArgAndInitial(int argc, char* argv[])
     }
 
     char opt;
-    while ((opt = getopt(argc, argv, "i:o:t:")) != EOF) {
+    while ((opt = getopt(argc, argv, "i:o:q")) != EOF) {
         switch (opt) {
         case 'i':
             yyin = fopen(optarg, "r");
@@ -71,8 +72,8 @@ void parseArgAndInitial(int argc, char* argv[])
         case 'o':
             output.open(optarg, std::ios::out);
             break;
-        case 't':
-            assertionID = atoi(optarg);
+        case 'q':
+            openSA = false;
             break;
         default:
             break;
