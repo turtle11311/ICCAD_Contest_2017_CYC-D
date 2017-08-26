@@ -75,27 +75,6 @@ void InputSequenceGenerator::simulator()
     simulatedAnnealing();
 }
 
-void InputSequenceGenerator::generateSolution()
-{
-    for (Assertion* asrt : asrtList) {
-        asrt->failed = false;
-    }
-    finalAnswer.clear();
-    finalAnswer.push_back(evalStartInput());
-    finalAnswer.push_back(evalSecondInput().reset());
-    for (Assertion* asrt : asrtList) {
-        careAsrt = asrt;
-        if (asrt->failed || asrt->noSolution)
-            continue;
-        if (finalAnswer.size() != 2)
-            finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
-        for (auto pit = answerDict[asrt].begin(); pit != answerDict[asrt].end(); ++pit)
-            finalAnswer.push_back(*pit);
-        triggeredAssertion.clear();
-        assertionInspector(finalAnswer);
-    }
-}
-
 void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
 {
     int i = 0;
@@ -124,7 +103,7 @@ void InputSequenceGenerator::simulatedAnnealing()
     std::function< float() > accept = std::bind(
         std::uniform_real_distribution<>(0, 1),
         randEng);
-    generateSolution2();
+    generateSolution();
     float temperature = 100.0f;
     const float RATE = 0.95f;
     const int TIMES_PER_ROUND = 200;
@@ -142,7 +121,7 @@ void InputSequenceGenerator::simulatedAnnealing()
         randomSwap4SA(i1, i2);
 
         // generate input sequence
-        generateSolution2();
+        generateSolution();
 
         // accept
         if (local.size() > finalAnswer.size()) {
@@ -234,57 +213,7 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
     return false;
 }
 
-void InputSequenceGenerator::assertionInspector(InputSequence& seq)
-{
-    static const LoggerPtr logger = Logger::getLogger("IGS.inspector");
-    unsigned int time = 30;
-    current = undefState;
-    in2 = InputPattern(inputSize(), 2);
-    out2 = Pattern(outputSize(), 2);
-    for (auto it = seq.begin(); it != seq.end(); ++it, time += 20) {
-        this->input(*it);
-        LOG4CXX_TRACE(logger, format("%1%, %2% in state %3%") % in2 % out2 % current);
-        for (Assertion* asrt : asrtList) {
-            if (asrt->failed)
-                continue;
-            size_t index = asrt->trigger.index;
-            Pattern::value_type triggerFlag = (asrt->trigger.change == SignalEdge::ROSE) ? 1 : 0;
-            bool signalFlag = (asrt->trigger.target == TargetType::OUT);
-
-            Pattern& pre = (signalFlag ? out1 : in1),
-                     &cur = (signalFlag ? out2 : in2);
-            if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
-                triggeredAssertion.push_back(AssertionStatus{0, asrt, false});
-            }
-        }
-        for (auto as = triggeredAssertion.begin(); as != triggeredAssertion.end(); ++as) {
-            Assertion& asrt = *as->target;
-            if (as->target->failed)
-                continue;
-            if (as->suc)
-                continue;
-            if (as->slack >= asrt.time.first && as->slack <= asrt.time.second) {
-                size_t index = asrt.event.index;
-                Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
-                bool signalFlag = (asrt.event.target == TargetType::OUT);
-                Pattern& pre = (signalFlag ? out1 : in1),
-                         &cur = (signalFlag ? out2 : in2);
-                if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
-                    as->suc = true;
-                }
-            } else if (as->slack > asrt.time.second) {
-                asrt.failed = true;
-                if (careAsrt->failed) {
-                    seq.erase(++it, seq.end());
-                    return;
-                }
-            }
-            ++(as->slack);
-        }
-    }
-}
-
-void InputSequenceGenerator::generateSolution2()
+void InputSequenceGenerator::generateSolution()
 {
     for (Assertion* asrt : asrtList) {
         asrt->failed = false;
@@ -312,7 +241,7 @@ void InputSequenceGenerator::generateSolution2()
         } else {
             _list.pop_front();
         }
-        assertionInspector2(finalAnswer);
+        assertionInspector(finalAnswer);
         if (!(*upcomingAsrt)->failed) {
             for (AssertionStatus& as : triggeredAssertion) {
                 if (as.target == *upcomingAsrt && !as.suc) {
@@ -332,7 +261,7 @@ void InputSequenceGenerator::generateSolution2()
     }
 }
 
-void InputSequenceGenerator::assertionInspector2(InputSequence& seq)
+void InputSequenceGenerator::assertionInspector(InputSequence& seq)
 {
     static const LoggerPtr logger = Logger::getLogger("IGS.inspector2");
     unsigned int time = 30;
