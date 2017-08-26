@@ -1,4 +1,6 @@
 #include "InputSequenceGenerator.hpp"
+#include <log4cxx/logger.h>
+#include <log4cxx/propertyconfigurator.h>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
@@ -35,6 +37,7 @@ void parseArgAndInitial(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
+    log4cxx::PropertyConfigurator::configure("log4cxx.properties");
     srand(time(0));
     parseArgAndInitial(argc, argv);
 
