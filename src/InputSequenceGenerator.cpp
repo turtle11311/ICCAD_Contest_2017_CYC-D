@@ -114,11 +114,12 @@ void InputSequenceGenerator::simulatedAnnealing()
     const float RATE = 0.95f;
     const int TIMES_PER_ROUND = 200;
     InputSequence opt = finalAnswer;
-    InputSequence local = finalAnswer;
+    size_t localSize = finalAnswer.size();
     std::list< Assertion* > optOrder;
     int r = 0;
     while (temperature > 1.0) {
         LOG4CXX_TRACE(logger, "<========= new try =========>");
+
         // swap
         int i1 = rand() % asrtList.size();
         int i2;
@@ -130,20 +131,20 @@ void InputSequenceGenerator::simulatedAnnealing()
         generateSolution();
 
         // accept
-        if (local.size() > finalAnswer.size()) {
-            local = finalAnswer;
+        if (localSize > finalAnswer.size()) {
+            localSize = finalAnswer.size();
             if (opt.size() > finalAnswer.size()) {
                 opt = finalAnswer;
                 optOrder = asrtList;
                 LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
             }
         } else {
-            int s1 = finalAnswer.size(), s2 = local.size();
+            int s1 = finalAnswer.size(), s2 = localSize;
             int delta = abs(s1 - s2);
             float threshold = 1 / exp(delta / temperature);
             // condition accept
             if (accept() < threshold) {
-                local = finalAnswer;
+                localSize = finalAnswer.size();
             } else {
                 randomSwap4SA(i1, i2);
             }
