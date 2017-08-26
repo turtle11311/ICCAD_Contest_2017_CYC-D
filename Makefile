@@ -13,7 +13,6 @@ REMOTEDIR = lichen
 
 .PHONY: all clean test simulation output deploy gentest info
 
-
 all: $(BINARY)
 
 simulation: $(CASEDIR)/simv output
@@ -22,6 +21,11 @@ simulation: $(CASEDIR)/simv output
 
 gentest: output
 	./$(AUTOTEST) $(CASE)
+
+test:
+	make simulation CASE=tb1 | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb1/input_sequence
+	make simulation CASE=tb2 | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb2/input_sequence
+	make simulation CASE=tb3 | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb3/input_sequence
 
 $(CASEDIR)/simv: gentest $(CASEDIR)/fsm.v $(CASEDIR)/test.v
 	$(RM) -rf csrc/ simv.daidir simv ucli.key
