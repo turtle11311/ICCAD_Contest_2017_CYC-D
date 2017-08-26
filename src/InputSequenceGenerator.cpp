@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <random>
 #include <ctime>
 #include <map>
 #include <memory>
@@ -112,9 +113,21 @@ void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
 void InputSequenceGenerator::simulatedAnnealing()
 {
     static const LoggerPtr logger = Logger::getLogger("IGS.SA");
+    static const auto randEng = std::default_random_engine(std::random_device {}());
+    const int M1_WEIGHT = 20;
+    const int M2_WEIGHT = 20;
+    const int M3_WEIGHT = 60;
+    std::function< unsigned int() > select_op = std::bind(
+        std::discrete_distribution<>({M1_WEIGHT, M2_WEIGHT, M3_WEIGHT}),
+        randEng);
+
+    std::function< float() > accept = std::bind(
+        std::uniform_real_distribution<>(0, 1),
+        randEng);
     generateSolution2();
     float temperature = 100.0f;
-    float rate = 0.95f;
+    const float RATE = 0.95f;
+    const int TIMES_PER_ROUND = 200;
     InputSequence opt = finalAnswer;
     InputSequence local = finalAnswer;
     std::list< Assertion* > optOrder;
@@ -143,16 +156,18 @@ void InputSequenceGenerator::simulatedAnnealing()
             int delta = abs(s1 - s2);
             float threshold = 1 / exp(delta / temperature);
             // condition accept
-            if (((float)(rand() % 1000)) / 1000 < threshold) {
+            if (accept() < threshold) {
                 local = finalAnswer;
             } else {
                 randomSwap4SA(i1, i2);
             }
         }
-        if (!((r++) % 100))
-            temperature *= rate;
+        if (!((r++) % TIMES_PER_ROUND))
+            temperature *= RATE;
     }
     finalAnswer = opt;
+
+    LOG4CXX_DEBUG(logger, "Optimal assertion order: ")
     std::for_each(optOrder.begin(), optOrder.end(), [](const Assertion* asrt) {
         LOG4CXX_DEBUG(logger, asrt->name);
     });
