@@ -76,24 +76,33 @@ void InputSequenceGenerator::simulator()
         if (!asrt->failed)
             fromActivatedPoint2AssertionFailed(*asrt);
     }
+    finalAnswer.clear();
+    finalAnswer.push_back(InputPattern::random(IPATTERNSIZE));
+    finalAnswer.push_back(InputPattern::random(IPATTERNSIZE).reset());
     generateSolution();
     if (openSA) {
         simulatedAnnealing();
     }
 }
 
-void InputSequenceGenerator::randomSwap4SA(int i1, int i2)
+std::pair< size_t, size_t > rand2(size_t lower, size_t upper)
 {
-    std::swap(asrtList[i1], asrtList[i2]);
+    assert(upper > lower);
+    size_t range = upper - lower;
+    int i1 = rand() % range + lower;
+    int i2;
+    while (i1 == (i2 = rand() % range + lower))
+        ;
+    return std::pair< size_t, size_t >(i1, i2);
 }
 
 void InputSequenceGenerator::simulatedAnnealing()
 {
     static const LoggerPtr logger = Logger::getLogger("IGS.SA");
-    static const auto randEng = std::default_random_engine(std::random_device {}());
-    const int M1_WEIGHT = 20;
-    const int M2_WEIGHT = 20;
-    const int M3_WEIGHT = 60;
+    static const std::default_random_engine randEng(std::random_device {}());
+    const int M1_WEIGHT = 30;
+    const int M2_WEIGHT = 30;
+    const int M3_WEIGHT = 40;
     std::function< unsigned int() > select_op = std::bind(
         std::discrete_distribution<>({M1_WEIGHT, M2_WEIGHT, M3_WEIGHT}),
         randEng);
@@ -101,22 +110,34 @@ void InputSequenceGenerator::simulatedAnnealing()
     std::function< float() > accept = std::bind(
         std::uniform_real_distribution<>(0, 1),
         randEng);
+    generateSolution();
     float temperature = 100.0f;
     const float RATE = 0.95f;
-    const int TIMES_PER_ROUND = 200;
+    const int TIMES_PER_ROUND = 1000;
     InputSequence opt = finalAnswer;
     size_t localSize = finalAnswer.size();
     std::vector< Assertion* > optOrder;
     int r = 0;
     while (temperature > 1.0) {
-        LOG4CXX_TRACE(logger, "<========= new try =========>");
+        LOG4CXX_DEBUG(logger, "<========= new try =========>");
 
-        // swap
-        int i1 = rand() % asrtList.size();
-        int i2;
-        while (i1 == (i2 = rand() % asrtList.size()))
-            ;
-        randomSwap4SA(i1, i2);
+        finalAnswer.erase(finalAnswer.begin() + 2, finalAnswer.end());
+        switch (select_op()) {
+        case 0: {
+            finalAnswer[0] = InputPattern::random(IPATTERNSIZE);
+        } break;
+        case 1: {
+            finalAnswer[1] = InputPattern::random(IPATTERNSIZE).reset();
+        } break;
+        case 2: {
+            // swap
+            auto rs = rand2(0, asrtList.size());
+            std::swap(asrtList[rs.first], asrtList[rs.second]);
+        } break;
+        default:
+            std::exit(1);
+            break;
+        }
 
         // generate input sequence
         generateSolution();
@@ -136,8 +157,6 @@ void InputSequenceGenerator::simulatedAnnealing()
             // condition accept
             if (accept() < threshold) {
                 localSize = finalAnswer.size();
-            } else {
-                randomSwap4SA(i1, i2);
             }
         }
         if (!((r++) % TIMES_PER_ROUND))
@@ -215,9 +234,7 @@ void InputSequenceGenerator::generateSolution()
     for (Assertion* asrt : asrtList) {
         asrt->failed = false;
     }
-    finalAnswer.clear();
-    finalAnswer.push_back(evalStartInput());
-    finalAnswer.push_back(evalSecondInput().reset());
+    LOG4CXX_DEBUG(logger, "<===== Start Generate =====>");
     upcomingAsrt = std::next(asrtList.begin());
     Assertion* holder = nullptr;
     for (Assertion* asrt : asrtList) {
@@ -268,7 +285,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
     auto breakIt = seq.end();
     for (auto it = seq.begin(); it != seq.end(); ++it, time += 20) {
         this->input(*it);
-        LOG4CXX_TRACE(logger, format("%1%, %2% in state %3%") % in2 % out2 % current);
+        LOG4CXX_TRACE(logger, format("%1%, %2% in state %|3$=10d| at %4%") % in2 % out2 % current->label % time);
         for (Assertion* asrt : asrtList) {
             if (asrt->failed)
                 continue;
@@ -300,6 +317,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                     as->suc = true;
                 }
             } else if (as->slack > asrt.time.second) {
+                LOG4CXX_DEBUG(logger, format("%1% has been failed!") % asrt.name);
                 asrt.failed = true;
                 if (careAsrt->failed) {
                     breakIt = it;
