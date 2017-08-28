@@ -100,6 +100,7 @@ void InputSequenceGenerator::simulatedAnnealing()
 {
     static const LoggerPtr logger = Logger::getLogger("IGS.SA");
     static const std::default_random_engine randEng(std::random_device {}());
+    static size_t tc = 0;
     const int M1_WEIGHT = 30;
     const int M2_WEIGHT = 30;
     const int M3_WEIGHT = 40;
@@ -110,7 +111,6 @@ void InputSequenceGenerator::simulatedAnnealing()
     std::function< float() > accept = std::bind(
         std::uniform_real_distribution<>(0, 1),
         randEng);
-    generateSolution();
     float temperature = 100.0f;
     const float RATE = 0.95f;
     const int TIMES_PER_ROUND = 1000;
@@ -119,7 +119,7 @@ void InputSequenceGenerator::simulatedAnnealing()
     std::vector< Assertion* > optOrder;
     int r = 0;
     while (temperature > 1.0) {
-        LOG4CXX_DEBUG(logger, "<========= new try =========>");
+        LOG4CXX_DEBUG(logger, ++tc << " try");
 
         finalAnswer.erase(finalAnswer.begin() + 2, finalAnswer.end());
         switch (select_op()) {
@@ -197,7 +197,9 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
     firstHalfAnswer.clear();
 }
 
-bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step)
+bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current,
+                                                                            Transition* t1, Transition* t2,
+                                                                            size_t step)
 {
     sequence.push_back(t2->defaultPattern());
     if (step > asrt.time.second) {
@@ -228,9 +230,48 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
     return false;
 }
 
+bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current,
+                                                                            Transition* t1, Transition* t2,
+                                                                            size_t step, size_t bound)
+{
+    static size_t counter = -1;
+    if (counter == 0) {
+        return false;
+    }
+    counter = bound != 0 ? bound : counter - 1;
+    sequence.push_back(t2->defaultPattern());
+    if (step > asrt.time.second) {
+        return true;
+    }
+    if (step >= asrt.time.first) {
+        bool income = false, outcome = false;
+        size_t index = asrt.event.index;
+
+        if (t1->out[index] == (asrt.event.change == SignalEdge::FELL ? 1 : 0)) {
+            income = true;
+        }
+        if (t2->out[index] == (asrt.event.change == SignalEdge::FELL ? 0 : 1)) {
+            outcome = true;
+        }
+        if (income && outcome) {
+            sequence.pop_back();
+            return false;
+        }
+    }
+    current = t2->nState;
+    for (auto trans = current->transitions.begin(); trans != current->transitions.end(); ++trans) {
+        bool res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, sequence, current, t2, *trans, step + 1, 0);
+        if (res == true)
+            return true;
+    }
+    sequence.pop_back();
+    return false;
+}
+
 void InputSequenceGenerator::generateSolution()
 {
     static const LoggerPtr logger = Logger::getLogger("IGS.genAnswer");
+    const size_t ACT_BOUND = 10000;
     for (Assertion* asrt : asrtList) {
         asrt->failed = false;
     }
@@ -242,7 +283,7 @@ void InputSequenceGenerator::generateSolution()
         if (asrt->failed || asrt->noSolution)
             continue;
         if (holder != asrt) {
-            LOG4CXX_TRACE(logger, format("%1% is picked") % asrt->name);
+            LOG4CXX_DEBUG(logger, format("%1% is picked at normal") % asrt->name);
             if (finalAnswer.size() != 2)
                 finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
             InputPattern* last = &finalAnswer.back();
@@ -258,13 +299,15 @@ void InputSequenceGenerator::generateSolution()
         }
         assertionInspector(finalAnswer);
         if (!(*upcomingAsrt)->failed) {
+            int k = 0;
             for (AssertionStatus& as : triggeredAssertion) {
                 if (as.target == *upcomingAsrt && !as.suc) {
+                    LOG4CXX_DEBUG(logger, "check act " << ++k)
                     InputSequence seq;
-                    if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack))
+                    if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack, ACT_BOUND))
                         continue;
                     holder = *upcomingAsrt;
-                    LOG4CXX_TRACE(logger, format("%1% is picked") % as.target->name);
+                    LOG4CXX_DEBUG(logger, format("%1% is picked at act") % as.target->name);
                     finalAnswer.insert(finalAnswer.end(), ++seq.begin(), seq.end());
                     break;
                 }
