@@ -17,10 +17,10 @@ struct AssertionStatus {
     size_t slack;
     Assertion* target;
     bool suc;
-    Transition *trans1, *trans2;
+    Transition* trans1, *trans2;
 };
 
-typedef std::list< InputPattern > InputSequence;
+typedef std::vector< InputPattern > InputSequence;
 
 class InputSequenceGenerator : protected FiniteStateMachine {
     typedef FiniteStateMachine _Base;
@@ -38,24 +38,26 @@ private:
     void initial2ActivatedArc();
     void evalInitial2State();
     void assertionInspector(InputSequence& seq);
-    void assertionInspector2(InputSequence& seq);
     void staticFindOutputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
-    bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, Transition* t1, Transition* t2, size_t step);
-    bool fromCurrent2Arc(Assertion&, InputSequence&, ActivatedPoint&);
+    bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current,
+                                                        Transition* t1, Transition* t2,
+                                                        size_t step);
+    bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current,
+                                                        Transition* t1, Transition* t2,
+                                                        size_t step, size_t bound);
     void purgeState(int state);
     void simulatedAnnealing();
     void randomSwap4SA(int, int);
     void generateSolution();
-    void generateSolution2();
     void assertionByOrder(std::vector< int >& order);
     InputPattern evalSecondInput();
     InputPattern evalStartInput();
     InputSequence answer, finalAnswer;
     std::map< Assertion*, InputSequence > answerDict;
-    std::list< Assertion* > asrtList;
-    std::list< Assertion* >::iterator upcomingAsrt;
+    std::vector< Assertion* > asrtList;
+    std::vector< Assertion* >::iterator upcomingAsrt;
     std::list< ActivatedPoint > path;
     bool asrtFailedFlag = false;
     ActivatedPoint targetAP;

@@ -34,6 +34,14 @@ Pattern::Pattern(const std::string& str)
     std::swap(new_pattern, *this);
 }
 
+Pattern Pattern::random(size_t size)
+{
+    Pattern res(size);
+    for (size_t i = 0; i < res.size(); ++i)
+        res[i] = rand() % 2;
+    return res;
+}
+
 const Pattern& Pattern::operator=(const Pattern& rhs)
 {
     _Base::operator=(rhs);
@@ -82,6 +90,11 @@ InputPattern::InputPattern(const Pattern& rhs, bool reset)
     : _Base(rhs)
     , _reset(reset)
 {
+}
+
+InputPattern InputPattern::random(size_t size)
+{
+    return InputPattern(_Base::random(size));
 }
 
 InputPattern& InputPattern::reset()
