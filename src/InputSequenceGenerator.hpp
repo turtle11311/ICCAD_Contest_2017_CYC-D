@@ -41,6 +41,7 @@ private:
     void staticFindOutputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
+    bool fromCurrent2Arc(Assertion&, InputSequence&, ActivatedPoint&);
     bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current,
                                                         Transition* t1, Transition* t2,
                                                         size_t step);
