@@ -288,8 +288,12 @@ void InputSequenceGenerator::generateSolution()
                 // try from current to default arc
                 bool canFromCur2Arc = false;
                 InputSequence seq1, seq2;
+                size_t CUR_BOUND = asrt->APList.size() / 10;
+                size_t curCounter = 0;
                 for (auto arc = asrt->arcIt; arc != asrt->APList.end(); ++arc) {
                     seq1.clear(), seq2.clear();
+                    if (++curCounter < CUR_BOUND)
+                        break;
                     if (fromCurrent2Arc(*asrt, seq1, *arc)) {
                         if (fromActivatedPoint2AssertionOutputSignalFailed(*asrt, seq2, arc->state, arc->transition1, arc->transition2, 0)) {
                             if (seq1.size() + seq2.size() >= answerDict[asrt].size())
