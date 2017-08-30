@@ -138,10 +138,10 @@ void InputSequenceGenerator::simulatedAnnealing()
             std::exit(1);
             break;
         }
-
         // generate input sequence
         generateSolution();
 
+        LOG4CXX_DEBUG(logger, "Now length:" << finalAnswer.size());
         // accept
         if (localSize > finalAnswer.size()) {
             localSize = finalAnswer.size();
@@ -164,7 +164,7 @@ void InputSequenceGenerator::simulatedAnnealing()
     }
     finalAnswer = opt;
 
-    LOG4CXX_DEBUG(logger, "Optimal assertion order: ")
+    LOG4CXX_DEBUG(logger, "Optimal assertion order: ");
     std::for_each(optOrder.begin(), optOrder.end(), [](const Assertion* asrt) {
         LOG4CXX_DEBUG(logger, asrt->name);
     });
@@ -386,21 +386,15 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                          &cur = (signalFlag ? out2 : in2);
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
-                    //cout << "Success: " << as->target->name << endl;
-                }
-            } else if (as->slack > asrt.time.second) {
-                LOG4CXX_DEBUG(logger, format("%1% has been failed!") % asrt.name);
-                asrt.failed = true;
-                //cout << asrt.name << " failed at " << counter << endl;
-                if (careAsrt->failed) {
-                    breakIt = it;
+                } else if (as->slack == asrt.time.second) {
+                    LOG4CXX_DEBUG(logger, format("%1% has been failed!") % asrt.name);
+                    asrt.failed = true;
+                    if (careAsrt->failed) {
+                        seq.erase(std::next(it), seq.end());
+                    }
                 }
             }
             ++(as->slack);
-        }
-        if (breakIt != seq.end()) {
-            seq.erase(++breakIt, seq.end());
-            return;
         }
     }
 }
