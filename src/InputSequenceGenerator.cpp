@@ -1,14 +1,14 @@
 #include "InputSequenceGenerator.hpp"
-#include <log4cxx/logger.h>
-#include <boost/format.hpp>
 #include <algorithm>
+#include <boost/format.hpp>
 #include <cassert>
 #include <cmath>
-#include <random>
 #include <ctime>
+#include <log4cxx/logger.h>
 #include <map>
 #include <memory>
 #include <queue>
+#include <random>
 #include <sstream>
 #include <string>
 
@@ -99,7 +99,7 @@ std::pair< size_t, size_t > rand2(size_t lower, size_t upper)
 void InputSequenceGenerator::simulatedAnnealing()
 {
     static const LoggerPtr logger = Logger::getLogger("IGS.SA");
-    static const std::default_random_engine randEng(std::random_device {}());
+    static const std::default_random_engine randEng(std::random_device{}());
     static size_t tc = 0;
     const int M1_WEIGHT = 30;
     const int M2_WEIGHT = 30;
@@ -150,7 +150,8 @@ void InputSequenceGenerator::simulatedAnnealing()
                 optOrder = asrtList;
                 LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
             }
-        } else {
+        }
+        else {
             int s1 = finalAnswer.size(), s2 = localSize;
             int delta = abs(s1 - s2);
             float threshold = 1 / exp(delta / temperature);
@@ -192,7 +193,8 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         answerDict[&asrt].front() = targetAP.pattern2.defaultPattern();
         initial2ActivatedArc();
         answerDict[&asrt].insert(answerDict[&asrt].begin(), firstHalfAnswer.rbegin(), firstHalfAnswer.rend());
-    } else {
+    }
+    else {
         asrt.noSolution = true;
     }
     firstHalfAnswer.clear();
@@ -285,36 +287,11 @@ void InputSequenceGenerator::generateSolution()
         if (!asrt->failed && !asrt->noSolution) {
             if (holder != asrt) {
                 LOG4CXX_DEBUG(logger, format("%1% is picked at normal") % asrt->name);
-                // try from current to default arc
-                bool canFromCur2Arc = false;
-                InputSequence seq1, seq2;
-                size_t CUR_BOUND = asrt->APList.size() / 10;
-                size_t curCounter = 0;
-                for (auto arc = asrt->arcIt; arc != asrt->APList.end(); ++arc) {
-                    seq1.clear(), seq2.clear();
-                    if (++curCounter < CUR_BOUND)
-                        break;
-                    if (fromCurrent2Arc(*asrt, seq1, *arc)) {
-                        if (fromActivatedPoint2AssertionOutputSignalFailed(*asrt, seq2, arc->state, arc->transition1, arc->transition2, 0)) {
-                            if (seq1.size() + seq2.size() >= answerDict[asrt].size())
-                                continue;
-                            LOG4CXX_DEBUG(logger, "default length: " << answerDict[asrt].size() << " | current to failed length: " << seq1.size() + seq2.size());
-                            LOG4CXX_DEBUG(logger, "current lenth: " << finalAnswer.size());
-                            canFromCur2Arc = true;
-                            finalAnswer.insert(finalAnswer.end(), seq1.rbegin(), seq1.rend());
-                            seq2.front() = arc->pattern2.defaultPattern();
-                            finalAnswer.insert(finalAnswer.end(), seq2.begin(), seq2.end());
-                            break;
-                        }
-                    }
-                }
-                // can't from current to arc
-                if (!canFromCur2Arc) {
-                    if (finalAnswer.size() != 2)
-                        finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
-                    finalAnswer.insert(finalAnswer.end(), answerDict[asrt].begin(), answerDict[asrt].end());
-                }
-            } else {
+                if (finalAnswer.size() != 2)
+                    finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
+                finalAnswer.insert(finalAnswer.end(), answerDict[asrt].begin(), answerDict[asrt].end());
+            }
+            else {
                 holder = nullptr;
             }
         }
@@ -363,8 +340,8 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             Pattern::value_type triggerFlag = (asrt->trigger.change == SignalEdge::ROSE) ? 1 : 0;
             bool signalFlag = (asrt->trigger.target == TargetType::OUT);
 
-            Pattern& pre = (signalFlag ? out1 : in1),
-                     &cur = (signalFlag ? out2 : in2);
+            Pattern &pre = (signalFlag ? out1 : in1),
+                    &cur = (signalFlag ? out2 : in2);
             if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                 //cout << "Trigger: " << asrt->name << " at " << counter << endl;
                 triggeredAssertion.push_back(AssertionStatus{0, asrt, false});
@@ -382,11 +359,12 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 size_t index = asrt.event.index;
                 Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
-                Pattern& pre = (signalFlag ? out1 : in1),
-                         &cur = (signalFlag ? out2 : in2);
+                Pattern &pre = (signalFlag ? out1 : in1),
+                        &cur = (signalFlag ? out2 : in2);
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
-                } else if (as->slack == asrt.time.second) {
+                }
+                else if (as->slack == asrt.time.second) {
                     LOG4CXX_DEBUG(logger, format("%1% has been failed!") % asrt.name);
                     asrt.failed = true;
                     if (careAsrt->failed) {
@@ -513,51 +491,6 @@ void InputSequenceGenerator::staticFindInputSignalActivatedPoint(bool trigger, u
     }
 }
 
-bool InputSequenceGenerator::fromCurrent2Arc(Assertion& asrt, InputSequence& seq, ActivatedPoint& arc)
-{
-    if (arc.state == initial)
-        return false;
-    resetTraversed();
-    State* cur = nullptr;
-    // setup the first state
-    for (State::From& from : arc.state->fromList) {
-        if (from.transition == arc.transition1) {
-            cur = from.state;
-            cur->traversed = true;
-            seq.push_back(arc.pattern1.defaultPattern());
-            // first back trace state is the current
-            if (cur == current) {
-                return true;
-            }
-            break;
-        }
-    }
-    assert(cur != nullptr);
-    while (!cur->deadEnd() && cur != initial) {
-        // can't get shorter ans
-        if (seq.size() >= asrt.arcIt->state->layer)
-            return false;
-        else {
-        }
-        for (State::From& from : cur->fromList) {
-            // try to choose the trans from current
-            if (from.state == current) {
-                seq.push_back(from.transition->defaultPattern());
-                return true;
-            }
-        }
-        for (State::From& from : cur->fromList) {
-            if (!from.state->traversed) {
-                cur = from.state;
-                cur->traversed = true;
-                seq.push_back(from.transition->defaultPattern());
-                break;
-            }
-        }
-    }
-    return false;
-}
-
 void InputSequenceGenerator::initial2ActivatedArc()
 {
     firstHalfAnswer.clear();
@@ -599,7 +532,7 @@ void InputSequenceGenerator::purgeState(int state)
                                                          trans->nState->fromList.end(),
                                                          [=](State::From& from) {
                                                              return from.state == it->second;
-                                          }),
+                                                         }),
                                           trans->nState->fromList.end());
         }
     }
