@@ -17,7 +17,7 @@ struct AssertionStatus {
     size_t slack;
     Assertion* target;
     bool suc;
-    Transition *trans1, *trans2;
+    Transition* trans1, *trans2;
 };
 
 typedef std::vector< InputPattern > InputSequence;
@@ -41,6 +41,7 @@ private:
     void staticFindOutputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void staticFindInputSignalActivatedPoint(bool trigger, unsigned int index, std::list< ActivatedPoint >& APList);
     void fromActivatedPoint2AssertionFailed(Assertion& asrt);
+    bool fromActivatedPoint2AssertionInputSignalFailed(Assertion& asrt, InputSequence& sequence);
     bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current,
                                                         Transition* t1, Transition* t2,
                                                         size_t step);
