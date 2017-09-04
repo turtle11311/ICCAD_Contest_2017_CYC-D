@@ -22,6 +22,7 @@ public:
     Pattern(const Pattern& rhs);
     Pattern(const char* str);
     Pattern(const std::string& str);
+    Pattern flipBy(const Pattern& base);
     const Pattern& operator=(const Pattern& rhs);
     static Pattern random(size_t size);
     bool operator==(const Pattern& rhs);

@@ -42,6 +42,19 @@ Pattern Pattern::random(size_t size)
     return res;
 }
 
+Pattern Pattern::flipBy(const Pattern& base)
+{
+    size_t baseIndex = this->size() > base.size()
+                           ? base.size()
+                           : this->size();
+    Pattern cpy(*this);
+    for (size_t i = 0; i < baseIndex; ++i) {
+        if (cpy[i] == 2)
+            cpy[i] = !base[i];
+    }
+    return cpy;
+}
+
 const Pattern& Pattern::operator=(const Pattern& rhs)
 {
     _Base::operator=(rhs);

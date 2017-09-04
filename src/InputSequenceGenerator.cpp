@@ -210,7 +210,11 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
                                                                             Transition* t1, Transition* t2,
                                                                             size_t step)
 {
-    sequence.push_back(t2->defaultPattern());
+    if (sequence.size() == 0)
+        sequence.push_back(t2->defaultPattern());
+    else
+        sequence.push_back(t2->pattern.flipBy(sequence.back()));
+
     if (step > asrt.time.second) {
         return true;
     }
@@ -248,7 +252,11 @@ bool InputSequenceGenerator::fromActivatedPoint2AssertionOutputSignalFailed(Asse
         return false;
     }
     counter = bound != 0 ? bound : counter - 1;
-    sequence.push_back(t2->defaultPattern());
+    if (sequence.size() == 0)
+        sequence.push_back(t2->defaultPattern());
+    else
+        sequence.push_back(t2->pattern.flipBy(sequence.back()));
+
     if (step > asrt.time.second) {
         return true;
     }
