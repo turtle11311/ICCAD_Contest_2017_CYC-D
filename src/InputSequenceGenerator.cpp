@@ -103,9 +103,10 @@ void InputSequenceGenerator::simulatedAnnealing()
     static size_t tc = 0;
     const int M1_WEIGHT = 30;
     const int M2_WEIGHT = 30;
-    const int M3_WEIGHT = 40;
+    const int M3_WEIGHT = 10;
+    const int M4_WEIGHT = 30;
     std::function< unsigned int() > select_op = std::bind(
-        std::discrete_distribution<>({M1_WEIGHT, M2_WEIGHT, M3_WEIGHT}),
+        std::discrete_distribution<>({M1_WEIGHT, M2_WEIGHT, M3_WEIGHT, M4_WEIGHT}),
         randEng);
 
     std::function< float() > accept = std::bind(
@@ -113,7 +114,7 @@ void InputSequenceGenerator::simulatedAnnealing()
         randEng);
     float temperature = 100.0f;
     const float RATE = 0.95f;
-    const int TIMES_PER_ROUND = 1000;
+    const int TIMES_PER_ROUND = 2000;
     InputSequence opt = finalAnswer;
     size_t localSize = finalAnswer.size();
     std::vector< Assertion* > optOrder;
@@ -130,6 +131,11 @@ void InputSequenceGenerator::simulatedAnnealing()
             finalAnswer[1] = InputPattern::random(IPATTERNSIZE).reset();
         } break;
         case 2: {
+            for (auto& state : *this) {
+                std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
+            }
+        } break;
+        case 3: {
             // swap
             auto rs = rand2(0, asrtList.size());
             std::swap(asrtList[rs.first], asrtList[rs.second]);
