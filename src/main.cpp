@@ -26,6 +26,8 @@ int ptnSize;
 int* state = new int;
 
 bool openSA = true;
+bool readfile = false;
+std::string filename;
 
 std::vector< Pattern > inputSequence;
 std::vector< unsigned int > rstRecord;
@@ -48,6 +50,12 @@ int main(int argc, char* argv[])
     std::ios_base::sync_with_stdio(false);
 
     generator.preprocess();
+
+    if (readfile) {
+        generator.evalInputSequence(filename);
+        return EXIT_SUCCESS;
+    }
+
     generator.simulator();
 
     generator.outputAnswer();
@@ -64,7 +72,7 @@ void parseArgAndInitial(int argc, char* argv[])
     }
 
     char opt;
-    while ((opt = getopt(argc, argv, "i:o:q")) != EOF) {
+    while ((opt = getopt(argc, argv, "i:o:s:q")) != EOF) {
         switch (opt) {
         case 'i':
             yyin = fopen(optarg, "r");
@@ -74,6 +82,10 @@ void parseArgAndInitial(int argc, char* argv[])
             break;
         case 'q':
             openSA = false;
+            break;
+        case 's':
+            readfile = true;
+            filename = std::string(optarg);
             break;
         default:
             break;

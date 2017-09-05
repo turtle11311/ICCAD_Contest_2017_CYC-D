@@ -52,7 +52,7 @@ void InputSequenceGenerator::preprocess()
     }
 }
 
-void InputSequenceGenerator::assertionByOrder(std::vector< int >& order)
+void InputSequenceGenerator::assertionByOrder(std::initializer_list< int > order)
 {
     std::sort(asrtList.begin(), asrtList.end(), [&order](const Assertion* lhs, const Assertion* rhs) {
         int a, b;
@@ -66,6 +66,7 @@ std::string name;
 
 void InputSequenceGenerator::simulator()
 {
+    //assertionByOrder({5, 18, 17, 11, 16, 9, 1, 20, 6, 10, 2, 8, 7, 19, 4, 14, 15, 13, 3, 12});
     std::sort(asrtList.begin(), asrtList.end(), [](const Assertion* lhs, const Assertion* rhs) {
         return lhs->time.second > rhs->time.second;
     });
@@ -79,6 +80,8 @@ void InputSequenceGenerator::simulator()
     finalAnswer.clear();
     finalAnswer.push_back(InputPattern::random(IPATTERNSIZE));
     finalAnswer.push_back(InputPattern::random(IPATTERNSIZE).reset());
+    //finalAnswer.push_back(InputPattern("0101100"));
+    //finalAnswer.push_back(InputPattern("1000011").reset());
     generateSolution();
     if (openSA) {
         simulatedAnnealing();
@@ -119,11 +122,14 @@ void InputSequenceGenerator::simulatedAnnealing()
     size_t localSize = finalAnswer.size();
     std::vector< Assertion* > optOrder;
     int r = 0;
+    size_t top1 = 0;
     while (temperature > 1.0) {
         LOG4CXX_DEBUG(logger, ++tc << " try");
 
         finalAnswer.erase(finalAnswer.begin() + 2, finalAnswer.end());
-        switch (select_op()) {
+        auto rs = rand2(0, asrtList.size());
+        int move = select_op();
+        switch (move) {
         case 0: {
             finalAnswer[0] = InputPattern::random(IPATTERNSIZE);
         } break;
@@ -134,10 +140,16 @@ void InputSequenceGenerator::simulatedAnnealing()
             for (auto& state : *this) {
                 std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
             }
+            for (Assertion* asrt : asrtList) {
+                path.clear();
+                asrtFailedFlag = false;
+                asrt->noSolution = false;
+                if (!asrt->failed)
+                    fromActivatedPoint2AssertionFailed(*asrt);
+            }
         } break;
         case 3: {
             // swap
-            auto rs = rand2(0, asrtList.size());
             std::swap(asrtList[rs.first], asrtList[rs.second]);
         } break;
         default:
@@ -149,20 +161,36 @@ void InputSequenceGenerator::simulatedAnnealing()
 
         LOG4CXX_DEBUG(logger, "Now length:" << finalAnswer.size());
         // accept
-        if (localSize > finalAnswer.size()) {
+
+        if (top1 < failedAssertion.size()) {
             localSize = finalAnswer.size();
             if (opt.size() > finalAnswer.size()) {
+                r = 0;
                 opt = finalAnswer;
                 optOrder = asrtList;
+                top1 = failedAssertion.size();
                 LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
             }
-        } else {
-            int s1 = finalAnswer.size(), s2 = localSize;
-            int delta = abs(s1 - s2);
-            float threshold = 1 / exp(delta / temperature);
-            // condition accept
-            if (accept() < threshold) {
+        } else if (top1 == failedAssertion.size()) {
+            if (localSize > finalAnswer.size()) {
                 localSize = finalAnswer.size();
+                if (opt.size() > finalAnswer.size()) {
+                    r = 0;
+                    opt = finalAnswer;
+                    optOrder = asrtList;
+                    LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
+                }
+            } else {
+                int s1 = finalAnswer.size(), s2 = localSize;
+                int delta = abs(s1 - s2);
+                float threshold = 1 / exp(delta / temperature);
+                // condition accept
+                if (accept() < threshold) {
+                    localSize = finalAnswer.size();
+                } else {
+                    if (move == 3)
+                        std::swap(asrtList[rs.first], asrtList[rs.second]);
+                }
             }
         }
         if (!((r++) % TIMES_PER_ROUND))
@@ -321,12 +349,9 @@ void InputSequenceGenerator::generateSolution()
                 if (as.target == *upcomingAsrt && !as.suc) {
                     LOG4CXX_DEBUG(logger, "check act " << ++k)
                     InputSequence seq;
-                    if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack, ACT_BOUND))
+                    if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, as.trans1, as.trans2, as.slack - 1, ACT_BOUND))
                         continue;
                     holder = *upcomingAsrt;
-                    for (auto pit = std::next(seq.begin()); pit != seq.end(); ++pit) {
-                        finalAnswer.push_back(*pit);
-                    }
                     LOG4CXX_DEBUG(logger, format("%1% is picked at act") % as.target->name);
                     finalAnswer.insert(finalAnswer.end(), ++seq.begin(), seq.end());
                     LOG4CXX_DEBUG(logger, "gain " << (*upcomingAsrt)->name << ", " << seq.size() - 1 << " plus");
@@ -385,6 +410,7 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 } else if (as->slack == asrt.time.second) {
                     LOG4CXX_DEBUG(logger, format("%1% has been failed!") % asrt.name);
                     asrt.failed = true;
+                    failedAssertion.insert(as->target);
                     if (careAsrt->failed) {
                         seq.erase(std::next(it), seq.end());
                     }
@@ -559,4 +585,16 @@ void InputSequenceGenerator::purgeState(int state)
         this->erase(it);
     }
 }
+
+void InputSequenceGenerator::evalInputSequence(std::string filename)
+{
+    std::ifstream file(filename, std::ios::in);
+    char line[200];
+    InputSequence sequence;
+    sequence.reserve(200);
+    while (file.getline(line, 200))
+        sequence.push_back(InputPattern(line + 1, line[0] - '0'));
+    assertionInspector(sequence);
+}
+
 } // namespace SVParser

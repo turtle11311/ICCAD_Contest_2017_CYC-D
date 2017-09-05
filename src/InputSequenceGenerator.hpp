@@ -1,9 +1,11 @@
 #pragma once
 #include "Assertion.hpp"
 #include "FiniteStateMachine.hpp"
+#include <initializer_list>
 #include <fstream>
 #include <list>
 #include <map>
+#include <set>
 
 namespace SVParser {
 class InputSequenceGenerator;
@@ -33,6 +35,7 @@ public:
     void preprocess();
     void staticFindActivatedPoint(Assertion& asrt);
     void outputAnswer();
+    void evalInputSequence(std::string filename);
 
 private:
     void initial2ActivatedArc();
@@ -52,7 +55,7 @@ private:
     void simulatedAnnealing();
     void randomSwap4SA(int, int);
     void generateSolution();
-    void assertionByOrder(std::vector< int >& order);
+    void assertionByOrder(std::initializer_list< int > order);
     InputPattern evalSecondInput();
     InputPattern evalStartInput();
     InputSequence answer, finalAnswer;
@@ -67,5 +70,6 @@ private:
     std::list< int > rstTable;
     std::ofstream coverage, act;
     Assertion* careAsrt;
+    std::set< Assertion* > failedAssertion;
 };
 } // namespace SVParser
