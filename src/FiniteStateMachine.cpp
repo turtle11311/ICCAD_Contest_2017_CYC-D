@@ -13,7 +13,7 @@ FiniteStateMachine::FiniteStateMachine()
 
 void FiniteStateMachine::insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out)
 {
-    State* nowState = getState(state), *nextState = getState(nState);
+    State *nowState = getState(state), *nextState = getState(nState);
     nowState->transitions.push_back(
         new Transition(std::move(pattern), nextState, std::move(out)));
 
@@ -36,18 +36,22 @@ void FiniteStateMachine::input(const InputPattern& pattern)
     out1 = out2;
     trans1 = trans2;
     in2 = pattern;
-    if (pattern._reset)
+    if (pattern._reset) {
         current = initial;
+        preCur = current;
+    }
     for (Transition* trans : current->transitions) {
         if (trans->pattern == pattern) {
+            preCur = current;
             current = trans->nState;
             out2 = trans->out;
             trans2 = trans;
             break;
         }
     }
-    if (pattern._reset)
+    if (pattern._reset) {
         current = initial;
+    }
 }
 
 FiniteStateMachine::~FiniteStateMachine()
