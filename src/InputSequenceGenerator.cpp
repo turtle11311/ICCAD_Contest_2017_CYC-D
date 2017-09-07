@@ -102,7 +102,7 @@ std::pair< size_t, size_t > rand2(size_t lower, size_t upper)
 void InputSequenceGenerator::simulatedAnnealing()
 {
     static const LoggerPtr logger = Logger::getLogger("IGS.SA");
-    static const std::default_random_engine randEng(std::random_device{}());
+    static const std::default_random_engine randEng(std::random_device {}());
     static size_t tc = 0;
     const int M1_WEIGHT = 30;
     const int M2_WEIGHT = 30;
@@ -171,8 +171,7 @@ void InputSequenceGenerator::simulatedAnnealing()
                 top1 = failedAssertion.size();
                 LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
             }
-        }
-        else if (top1 == failedAssertion.size()) {
+        } else if (top1 == failedAssertion.size()) {
             if (localSize > finalAnswer.size()) {
                 localSize = finalAnswer.size();
                 if (opt.size() > finalAnswer.size()) {
@@ -181,16 +180,14 @@ void InputSequenceGenerator::simulatedAnnealing()
                     optOrder = asrtList;
                     LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
                 }
-            }
-            else {
+            } else {
                 int s1 = finalAnswer.size(), s2 = localSize;
                 int delta = abs(s1 - s2);
                 float threshold = 1 / exp(delta / temperature);
                 // condition accept
                 if (accept() < threshold) {
                     localSize = finalAnswer.size();
-                }
-                else {
+                } else {
                     if (move == 3)
                         std::swap(asrtList[rs.first], asrtList[rs.second]);
                 }
@@ -218,8 +215,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         asrt.arcIt = ap;
         if (signalFlag) {
             res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap->state, ap->transition1, ap->transition2, 0);
-        }
-        else {
+        } else {
             res = fromActivatedPoint2AssertionInputSignalFailed(asrt, answerDict[&asrt]);
         }
         if (res) {
@@ -232,8 +228,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         answerDict[&asrt].front() = targetAP.pattern2.defaultPattern();
         initial2ActivatedArc();
         answerDict[&asrt].insert(answerDict[&asrt].begin(), firstHalfAnswer.rbegin(), firstHalfAnswer.rend());
-    }
-    else {
+    } else {
         asrt.noSolution = true;
     }
     firstHalfAnswer.clear();
@@ -348,8 +343,7 @@ void InputSequenceGenerator::generateSolution()
                     finalAnswer.push_back(InputPattern(IPATTERNSIZE, 0, true));
                 finalAnswer.insert(finalAnswer.end(), answerDict[asrt].begin(), answerDict[asrt].end());
                 LOG4CXX_DEBUG(logger, "Pick");
-            }
-            else {
+            } else {
                 LOG4CXX_DEBUG(logger, "No pick");
                 holder = nullptr;
             }
@@ -407,8 +401,8 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
             Pattern::value_type triggerFlag = (asrt->trigger.change == SignalEdge::ROSE) ? 1 : 0;
             bool signalFlag = (asrt->trigger.target == TargetType::OUT);
 
-            Pattern &pre = (signalFlag ? out1 : in1),
-                    &cur = (signalFlag ? out2 : in2);
+            Pattern& pre = (signalFlag ? out1 : in1),
+                     &cur = (signalFlag ? out2 : in2);
             if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                 triggeredAssertion.push_back(AssertionStatus{0, asrt, false});
             }
@@ -425,12 +419,11 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                 size_t index = asrt.event.index;
                 Pattern::value_type triggerFlag = (asrt.event.change == SignalEdge::ROSE) ? 1 : 0;
                 bool signalFlag = (asrt.event.target == TargetType::OUT);
-                Pattern &pre = (signalFlag ? out1 : in1),
-                        &cur = (signalFlag ? out2 : in2);
+                Pattern& pre = (signalFlag ? out1 : in1),
+                         &cur = (signalFlag ? out2 : in2);
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
-                }
-                else if (as->slack == asrt.time.second) {
+                } else if (as->slack == asrt.time.second) {
                     LOG4CXX_DEBUG(logger, format("%1% has been failed!") % asrt.name);
                     asrt.failed = true;
                     failedAssertion.insert(as->target);
@@ -600,7 +593,7 @@ void InputSequenceGenerator::purgeState(int state)
                                                          trans->nState->fromList.end(),
                                                          [=](State::From& from) {
                                                              return from.state == it->second;
-                                                         }),
+                                          }),
                                           trans->nState->fromList.end());
         }
     }

@@ -23,6 +23,9 @@ public:
     Pattern(const char* str);
     Pattern(const std::string& str);
     Pattern flipBy(const Pattern& base);
+    Pattern intersectionWith(const Pattern& rhs);
+    Pattern diffWith(const Pattern& rhs);
+    bool empty() const;
     const Pattern& operator=(const Pattern& rhs);
     static Pattern random(size_t size);
     bool operator==(const Pattern& rhs);

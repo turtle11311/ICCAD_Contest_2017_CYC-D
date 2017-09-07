@@ -55,6 +55,36 @@ Pattern Pattern::flipBy(const Pattern& base)
     return cpy;
 }
 
+Pattern Pattern::intersectionWith(const Pattern& rhs)
+{
+    Pattern res(*this);
+    for (size_t i = 0; i < res.size(); ++i) {
+        if (res[i] == rhs[i]) {
+            continue;
+        } else if (res[i] == 2) {
+            res[i] = rhs[i];
+        } else if (rhs[i] == 2) {
+            continue;
+        } else {
+            res[i] = 3;
+        }
+    }
+    return res;
+}
+
+Pattern Pattern::diffWith(const Pattern& rhs)
+{
+    Pattern res(*this);
+    for (size_t i = 0; i < res.size(); ++i) {
+        if (res[i] == rhs[i]) {
+            res[i] == 3;
+        } else if (res[i] == 2 && rhs[i] != 2) {
+            res[i] = !rhs[i];
+        }
+    }
+    return res;
+}
+
 const Pattern& Pattern::operator=(const Pattern& rhs)
 {
     _Base::operator=(rhs);
@@ -81,6 +111,11 @@ Pattern Pattern::defaultPattern()
         if (res[i] == 2)
             res[i] = 0;
     return res;
+}
+
+bool Pattern::empty() const
+{
+    return std::any_of(this->begin(), this->end(), [](const value_type e) { return e == 3; });
 }
 
 std::ostream& operator<<(std::ostream& os, const Pattern& pattern)

@@ -223,7 +223,7 @@ casex_contruct
         ;
 
 casex_list
-        : casex_list casex
+        : casex casex_list
         | casex
         ;
 

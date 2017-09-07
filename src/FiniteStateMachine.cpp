@@ -1,9 +1,14 @@
 #include "FiniteStateMachine.hpp"
+#include <log4cxx/logger.h>
 #include <iostream>
+#include <boost/format.hpp>
 #include <limits>
 #include <utility>
 using std::endl;
 using std::cout;
+using boost::format;
+using log4cxx::LoggerPtr;
+using log4cxx::Logger;
 
 namespace SVParser {
 FiniteStateMachine::FiniteStateMachine()
@@ -13,7 +18,28 @@ FiniteStateMachine::FiniteStateMachine()
 
 void FiniteStateMachine::insesrtTransition(int state, Pattern&& pattern, int nState, Pattern&& out)
 {
-    State *nowState = getState(state), *nextState = getState(nState);
+    static const LoggerPtr logger = Logger::getLogger("preprocess.insertTransition");
+    State* nowState = getState(state),
+           *nextState = getState(nState);
+
+    std::vector< Transition* >& transList = nowState->transitions;
+
+    // check coverage
+    for (size_t i = 0; i < transList.size(); ++i) {
+        Pattern& select = transList[i]->pattern;
+        Pattern inter = select.intersectionWith(pattern);
+        if (inter == pattern) {
+            LOG4CXX_DEBUG(logger, i);
+            LOG4CXX_DEBUG(logger, format("%1% state: %2% => %3% go %4% is redundent") % state % pattern % out % nState);
+            return;
+        } else if (!inter.empty()) {
+            LOG4CXX_DEBUG(logger, "<==================================>");
+            LOG4CXX_DEBUG(logger, format("%1% state: %2% => %3% go %4%") % state % pattern % out % nState);
+            pattern = pattern.diffWith(inter);
+            LOG4CXX_DEBUG(logger, format("%1% state: %2% => %3% go %4%") % state % pattern % out % nState);
+        }
+    }
+
     nowState->transitions.push_back(
         new Transition(std::move(pattern), nextState, std::move(out)));
 
