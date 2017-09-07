@@ -1,9 +1,10 @@
 MAKE = make
 CXX = g++
-CXXFLAGS += -Isrc/ --std=c++11 -O3
+SRC ?= src
+CXXFLAGS += -I$(SRC)/ --std=c++11 -O3
 LEX = flex
 YACC = bison
-VPATH = src
+VPATH = $(SRC)
 BINARY = cadb036
 CASE ?= tb1
 BUILDDIR ?= build
@@ -14,9 +15,9 @@ AUTOTEST = plugin/autotest
 REMOTEDIR = lichen
 OBJS = main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o InputSequenceGenerator.o
 
-.PHONY: all clean test simulation output deploy gentest info
+.PHONY: all clean test simulation output deploy gentest info cleanlog upload
 
-all: $(BUILDDIR) $(BINARY)
+all: $(BUILDDIR) $(BUILDDIR)/$(BINARY)
 
 simulation: $(CASEDIR)/simv output
 	cd $(CASEDIR)
@@ -25,6 +26,8 @@ simulation: $(CASEDIR)/simv output
 gentest: output
 	./$(AUTOTEST) $(CASE)
 
+cleanlog:
+	@for src in $$(ls $(SRC)/*.cpp); do sed -irn -e '/log4cxx/d' -e '/Logger/d' -e '/LOG4CXX/d' $$src; done
 test:
 	make simulation CASE=tb1 ARGS=$(ARGS) | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb1/input_sequence
 	make simulation CASE=tb2 ARGS=$(ARGS) | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb2/input_sequence
@@ -40,24 +43,36 @@ output:
 info:
 	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence $(ARGS)
 
-deploy: $(BINARY)
+stage:
+	cp -r src/ $@
+
+deploy: stage cleanlog 
+	make upload BUILDDIR=release SRC=stage
+
+upload: $(BUILDDIR) $(BUILDDIR)/$(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
-	scp -r test_cases/ $(BINARY) Makefile $(SERVER):~/$(REMOTEDIR)
+	$(RM) -r test_cases/
+	git checkout -f test_cases/
+	scp -r test_cases/ $(BUILDDIR) Makefile $(SERVER):~/$(REMOTEDIR)
+	ssh $(SERVER) "cp ~/$(REMOTEDIR)/$(BUILDDIR)/$(BINARY) ~/$(REMOTEDIR)"
 	ssh $(SERVER)
 
-$(BUILDDIR)/%.o: src/%.cpp
+$(BUILDDIR)/%.o: $(SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
-$(BINARY): $(foreach obj, $(OBJS), $(BUILDDIR)/$(obj))
+release/$(BINARY): $(foreach obj, $(OBJS), $(BUILDDIR)/$(obj))
+	$(CXX) $(CXXFLAGS) $^ -static -o $@
+
+build/$(BINARY): $(foreach obj, $(OBJS), $(BUILDDIR)/$(obj))
 	$(CXX) $(CXXFLAGS) $^ -llog4cxx -o $@
 
-src/SVParser.lex.cpp: SVParser.l SVParser.y
+$(SRC)/SVParser.lex.cpp: SVParser.l SVParser.y
 	$(LEX) -t $< > $@
 
-src/SVParser.tab.cpp: SVParser.y
+$(SRC)/SVParser.tab.cpp: SVParser.y
 	$(YACC) -d -o $@ $<
 
 $(BUILDDIR):
-	mkdir $@
+	mkdir -p $@
 clean:
-	$(RM) -rf $(BINARY) $(BUILDDIR) src/*.lex.* src/*.tab.*
+	$(RM) -rf $(BUILDDIR) src/*.lex.* src/*.tab.* release/ stage/
