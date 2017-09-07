@@ -48,7 +48,7 @@ private:
     bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current,
                                                         Transition* t1, Transition* t2,
                                                         size_t step);
-    bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current,
+    bool fromActivatedPoint2AssertionOutputSignalFailed(Assertion& asrt, InputSequence& sequence, State* current, State* nState,
                                                         Transition* t1, Transition* t2,
                                                         size_t step, size_t bound);
     void purgeState(int state);
