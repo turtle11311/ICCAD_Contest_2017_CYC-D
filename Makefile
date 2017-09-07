@@ -28,6 +28,7 @@ gentest: output
 
 cleanlog:
 	@for src in $$(ls $(SRC)/*.cpp); do sed -irn -e '/log4cxx/d' -e '/Logger/d' -e '/LOG4CXX/d' $$src; done
+
 test:
 	make simulation CASE=tb1 ARGS=$(ARGS) | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb1/input_sequence
 	make simulation CASE=tb2 ARGS=$(ARGS) | grep 'assertion rule' | sort -u | wc -l; wc -l test_cases/tb2/input_sequence
@@ -44,9 +45,11 @@ info:
 	./$(BINARY) -i $(CASEDIR)/fsm.v -o $(CASEDIR)/input_sequence $(ARGS)
 
 stage:
-	cp -r src/ $@
+	mkdir -p $@
+	cp -r src/* $@
 
-deploy: stage cleanlog 
+deploy: stage
+	make cleanlog BUILDDIR=release SRC=stage
 	make upload BUILDDIR=release SRC=stage
 
 upload: $(BUILDDIR) $(BUILDDIR)/$(BINARY)
