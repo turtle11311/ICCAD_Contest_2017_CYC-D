@@ -3,18 +3,20 @@ CXX = g++
 CXXFLAGS += -Isrc/ --std=c++11 -O3
 LEX = flex
 YACC = bison
-VPATH = src/
+VPATH = src
 BINARY = cadb036
 CASE ?= tb1
+BUILDDIR ?= build
 ARGS ?= ""
 CASEDIR = test_cases/$(CASE)
 SERVER = cadb036@140.110.214.97
 AUTOTEST = plugin/autotest
 REMOTEDIR = lichen
+OBJS = main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o InputSequenceGenerator.o
 
 .PHONY: all clean test simulation output deploy gentest info
 
-all: $(BINARY)
+all: $(BUILDDIR) $(BINARY)
 
 simulation: $(CASEDIR)/simv output
 	cd $(CASEDIR)
@@ -43,17 +45,19 @@ deploy: $(BINARY)
 	scp -r test_cases/ $(BINARY) Makefile $(SERVER):~/$(REMOTEDIR)
 	ssh $(SERVER)
 
-%.o: %.cpp %.hpp
+$(BUILDDIR)/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
-$(BINARY): main.o SVParser.tab.o Assertion.o SVParser.lex.o Pattern.o State.o FiniteStateMachine.o InputSequenceGenerator.o
+$(BINARY): $(foreach obj, $(OBJS), $(BUILDDIR)/$(obj))
 	$(CXX) $(CXXFLAGS) $^ -llog4cxx -o $@
 
-SVParser.lex.cpp: SVParser.l SVParser.y
+src/SVParser.lex.cpp: SVParser.l SVParser.y
 	$(LEX) -t $< > $@
 
-SVParser.tab.cpp: SVParser.y
+src/SVParser.tab.cpp: SVParser.y
 	$(YACC) -d -o $@ $<
 
+$(BUILDDIR):
+	mkdir $@
 clean:
-	$(RM) *.o *.lex.* $(BINARY) *.tab.* assertion_* *.coverage *.act
+	$(RM) -rf $(BINARY) $(BUILDDIR) src/*.lex.* src/*.tab.*
