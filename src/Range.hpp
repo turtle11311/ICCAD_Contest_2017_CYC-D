@@ -16,7 +16,7 @@ public:
         : _Base(pos1, pos2)
     {
     }
-    inline size_t length()
+    inline size_t length() const
     {
         return std::abs(static_cast< int >(first - second)) + 1;
     }

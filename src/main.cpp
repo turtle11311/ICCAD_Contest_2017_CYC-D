@@ -40,7 +40,9 @@ void parseArgAndInitial(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
+    // cout << argv[5] << endl;
     log4cxx::PropertyConfigurator::configure("log4cxx.properties");
+    // srand(atoi(argv[5]));
     srand(time(0));
     parseArgAndInitial(argc, argv);
 
@@ -50,7 +52,6 @@ int main(int argc, char* argv[])
     std::ios_base::sync_with_stdio(false);
 
     generator.preprocess();
-
     if (readfile) {
         generator.evalInputSequence(filename);
         return EXIT_SUCCESS;

@@ -68,11 +68,11 @@ std::string name;
 void InputSequenceGenerator::simulator()
 {
     std::sort(asrtList.begin(), asrtList.end(), [](const Assertion* lhs, const Assertion* rhs) {
-        return lhs->time.second > rhs->time.second;
+        return lhs->time.first < rhs->time.first;
     });
-    //for (auto& state : *this) {
+    // for (auto& state : *this) {
     //    std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
-    //}
+    // }
     for (Assertion* asrt : asrtList) {
         path.clear();
         asrtFailedFlag = false;
@@ -86,7 +86,8 @@ void InputSequenceGenerator::simulator()
     //finalAnswer.push_back(InputPattern("0101100"));
     //finalAnswer.push_back(InputPattern("1000011").reset());
     generateSolution();
-    //return;
+    cout << "Initial solution: " << finalAnswer.size() <<endl;
+    // return;
     if (openSA) {
         simulatedAnnealing();
     }
@@ -111,8 +112,8 @@ void InputSequenceGenerator::simulatedAnnealing()
     static size_t tc = 0;
     const int M1_WEIGHT = 25;
     const int M2_WEIGHT = 25;
-    const int M3_WEIGHT = 10;
-    const int M4_WEIGHT = 40;
+    const int M3_WEIGHT = 0;
+    const int M4_WEIGHT = 50;
     std::function< unsigned int() > select_op = std::bind(
         std::discrete_distribution<>({M1_WEIGHT, M2_WEIGHT, M3_WEIGHT, M4_WEIGHT}),
         randEng);
@@ -122,87 +123,106 @@ void InputSequenceGenerator::simulatedAnnealing()
         randEng);
     float temperature = 100.0f;
     const float RATE = 0.95f;
-    const int TIMES_PER_ROUND = 4000;
+    const int TIMES_PER_ROUND = 200;
     InputSequence opt = finalAnswer;
     size_t localSize = finalAnswer.size();
     std::vector< Assertion* > optOrder;
     int r = 0;
-    size_t top1 = 0;
-    while (temperature > 1.0) {
-        LOG4CXX_DEBUG(logger, ++tc << " try");
+    size_t top1 = failedAssertion.size();
+    for ( int i = 0 ; i < 10  ; ++i ){
+        cout << "SA: " << i << endl;
+        while (temperature > 1.0) {
+            LOG4CXX_DEBUG(logger, ++tc << " try");
 
-        finalAnswer.erase(finalAnswer.begin() + 2, finalAnswer.end());
-        auto rs = rand2(0, asrtList.size());
-        int move = select_op();
-        switch (move) {
-        case 0: {
-            finalAnswer[0] = InputPattern::random(IPATTERNSIZE);
-        } break;
-        case 1: {
-            finalAnswer[1] = InputPattern::random(IPATTERNSIZE).reset();
-        } break;
-        case 2: {
-            for (auto& state : *this) {
-                std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
+            finalAnswer.erase(finalAnswer.begin() + 2, finalAnswer.end());
+            auto rs = rand2(0, asrtList.size());
+            int move = select_op();
+            switch (move) {
+                case 0: {
+                    finalAnswer[0] = InputPattern::random(IPATTERNSIZE);
+                } break;
+                case 1: {
+                    finalAnswer[1] = InputPattern::random(IPATTERNSIZE).reset();
+                } break;
+                case 2: {
+                    for (auto& state : *this) {
+                        std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
+                    }
+                    for (Assertion* asrt : asrtList) {
+                        path.clear();
+                        asrtFailedFlag = false;
+                        asrt->noSolution = false;
+                        if (!asrt->failed)
+                        fromActivatedPoint2AssertionFailed(*asrt);
+                    }
+                } break;
+                case 3: {
+                    // swap
+                    std::swap(asrtList[rs.first], asrtList[rs.second]);
+                } break;
+                default:
+                std::exit(1);
+                break;
             }
-            for (Assertion* asrt : asrtList) {
-                path.clear();
-                asrtFailedFlag = false;
-                asrt->noSolution = false;
-                if (!asrt->failed)
-                    fromActivatedPoint2AssertionFailed(*asrt);
-            }
-        } break;
-        case 3: {
-            // swap
-            std::swap(asrtList[rs.first], asrtList[rs.second]);
-        } break;
-        default:
-            std::exit(1);
-            break;
-        }
-        // generate input sequence
-        generateSolution();
+            // generate input sequence
+            generateSolution();
 
-        LOG4CXX_DEBUG(logger, "Now length:" << finalAnswer.size());
-        // accept
+            LOG4CXX_DEBUG(logger, "Now length:" << finalAnswer.size());
+            // accept
 
-        if (top1 < failedAssertion.size()) {
-            localSize = finalAnswer.size();
-            if (opt.size() > finalAnswer.size()) {
-                r = 0;
-                opt = finalAnswer;
-                optOrder = asrtList;
-                top1 = failedAssertion.size();
-                LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
-            }
-        }
-        else if (top1 == failedAssertion.size()) {
-            if (localSize > finalAnswer.size()) {
+            if (top1 < failedAssertion.size()) {
                 localSize = finalAnswer.size();
                 if (opt.size() > finalAnswer.size()) {
                     r = 0;
+                    cout << "Bad solution: " << finalAnswer.size() <<endl;
                     opt = finalAnswer;
                     optOrder = asrtList;
+                    top1 = failedAssertion.size();
                     LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
                 }
             }
-            else {
-                int s1 = finalAnswer.size(), s2 = localSize;
-                int delta = abs(s1 - s2);
-                float threshold = 1 / exp(delta / temperature);
-                // condition accept
-                if (accept() < threshold) {
+            else if (top1 == failedAssertion.size()) {
+                if (localSize > finalAnswer.size()) {
                     localSize = finalAnswer.size();
+                    if (opt.size() > finalAnswer.size()) {
+                        r = 0;
+                        opt = finalAnswer;
+                        optOrder = asrtList;
+                        cout << "Good solution: " << finalAnswer.size() <<endl;
+                        LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
+                    }
                 }
                 else {
-                    if (move == 3)
+                    int s1 = finalAnswer.size(), s2 = localSize;
+                    int delta = abs(s1 - s2);
+                    float threshold = 1 / exp(delta / temperature);
+                    // condition accept
+                    if (accept() < threshold) {
+                        localSize = finalAnswer.size();
+                    }
+                    else {
+                        if (move == 3)
                         std::swap(asrtList[rs.first], asrtList[rs.second]);
+                    }
                 }
             }
-        }
-        if (!((r++) % TIMES_PER_ROUND))
+            if (!((r++) % TIMES_PER_ROUND))
             temperature *= RATE;
+        }
+        temperature = 100;
+        for (auto& state : *this) {
+            std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
+        }
+        for (Assertion* asrt : asrtList) {
+            path.clear();
+            asrtFailedFlag = false;
+            asrt->noSolution = false;
+            if (!asrt->failed)
+            fromActivatedPoint2AssertionFailed(*asrt);
+        }
+        std::sort(asrtList.begin(), asrtList.end(), [](const Assertion* lhs, const Assertion* rhs) {
+            return lhs->time.first < rhs->time.first;
+        });
     }
     finalAnswer = opt;
 
@@ -359,9 +379,6 @@ void InputSequenceGenerator::generateSolution()
             }
         }
         assertionInspector(finalAnswer);
-        if (!asrt->failed && !asrt->noSolution) {
-            LOG4CXX_DEBUG(logger, "Pick Failed");
-        }
         if (upcomingAsrt != asrtList.end() && !(*upcomingAsrt)->failed && !(*upcomingAsrt)->noSolution) {
             int k = 0;
             for (AssertionStatus& as : triggeredAssertion) {
