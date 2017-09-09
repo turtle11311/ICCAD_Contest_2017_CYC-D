@@ -10,6 +10,11 @@
 # object files
 *.o
 
+# build
+build/
+stage/
+release/
+
 # flex & bison generate codes
 *.tab.*
 *.lex.*
