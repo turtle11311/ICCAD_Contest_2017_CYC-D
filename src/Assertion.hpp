@@ -31,12 +31,6 @@ struct ActivatedPoint {
     State* state;
     Pattern pattern1, pattern2;
     Transition *transition1, *transition2;
-    void printAP()
-    {
-        cout << "(S" << state->label << ") -> " << pattern1
-             << " | out: " << transition1->out << " => (S" << transition1->nState->label
-             << ") -> " << pattern2 << " | out: " << transition2->out << endl;
-    }
     static bool cmpWithLayer(const ActivatedPoint& lhs, const ActivatedPoint& rhs);
 };
 
@@ -52,6 +46,5 @@ struct Assertion {
     std::list< ActivatedPoint > APList;
     std::list< ActivatedPoint >::iterator arcIt, defaultArcIt;
     void sortActivatedPointByLayer();
-    void printActivatedPoint();
 };
 } // namespace SVParser

@@ -20,13 +20,10 @@ using std::endl;
 
 extern FILE* yyin;
 
-std::ofstream output;
-
 int ptnSize;
 int* state = new int;
 
 bool openSA = true;
-bool readfile = false;
 std::string filename;
 
 std::vector< Pattern > inputSequence;
@@ -40,9 +37,7 @@ void parseArgAndInitial(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
-    // cout << argv[5] << endl;
     log4cxx::PropertyConfigurator::configure("log4cxx.properties");
-    // srand(atoi(argv[5]));
     srand(time(0));
     parseArgAndInitial(argc, argv);
 
@@ -52,10 +47,6 @@ int main(int argc, char* argv[])
     std::ios_base::sync_with_stdio(false);
 
     generator.preprocess();
-    if (readfile) {
-        generator.evalInputSequence(filename);
-        return EXIT_SUCCESS;
-    }
 
     generator.simulator();
 
@@ -79,14 +70,10 @@ void parseArgAndInitial(int argc, char* argv[])
             yyin = fopen(optarg, "r");
             break;
         case 'o':
-            output.open(optarg, std::ios::out);
+            filename = std::string(optarg);
             break;
         case 'q':
             openSA = false;
-            break;
-        case 's':
-            readfile = true;
-            filename = std::string(optarg);
             break;
         default:
             break;

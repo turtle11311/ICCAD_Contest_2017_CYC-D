@@ -29,13 +29,4 @@ void Assertion::sortActivatedPointByLayer()
     APList.sort(&ActivatedPoint::cmpWithLayer);
 }
 
-void Assertion::printActivatedPoint()
-{
-    cout << APList.size() << endl;
-    for (auto it = APList.begin(); it != APList.end(); ++it) {
-        it->printAP();
-    }
-    cout << endl
-         << endl;
-}
 } // namespace SVParser

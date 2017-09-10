@@ -16,7 +16,7 @@ using log4cxx::LoggerPtr;
 using log4cxx::Logger;
 using boost::format;
 
-extern std::ofstream output;
+extern std::string filename;
 extern bool openSA;
 
 namespace SVParser {
@@ -42,7 +42,7 @@ void InputSequenceGenerator::preprocess()
 {
     evalInitial2State();
     // purge unreach state
-    for (auto it = this->begin(); it != this->end(); ++it){
+    for (auto it = this->begin(); it != this->end(); ++it) {
         if (!it->second->traversed)
             purgeState(it->first);
     }
@@ -70,9 +70,6 @@ void InputSequenceGenerator::simulator()
     std::sort(asrtList.begin(), asrtList.end(), [](const Assertion* lhs, const Assertion* rhs) {
         return lhs->time.first < rhs->time.first;
     });
-    // for (auto& state : *this) {
-    //    std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
-    // }
     for (Assertion* asrt : asrtList) {
         path.clear();
         asrtFailedFlag = false;
@@ -83,11 +80,8 @@ void InputSequenceGenerator::simulator()
     finalAnswer.clear();
     finalAnswer.push_back(InputPattern::random(IPATTERNSIZE));
     finalAnswer.push_back(InputPattern::random(IPATTERNSIZE).reset());
-    //finalAnswer.push_back(InputPattern("0101100"));
-    //finalAnswer.push_back(InputPattern("1000011").reset());
     generateSolution();
-    cout << "Initial solution: " << finalAnswer.size() <<endl;
-    // return;
+    outputAnswer();
     if (openSA) {
         simulatedAnnealing();
     }
@@ -102,7 +96,6 @@ std::pair< size_t, size_t > rand2(size_t lower, size_t upper)
     while (i1 == (i2 = rand() % range + lower))
         ;
     return std::pair< size_t, size_t >(i1, i2);
-
 }
 
 void InputSequenceGenerator::simulatedAnnealing()
@@ -110,10 +103,10 @@ void InputSequenceGenerator::simulatedAnnealing()
     static const LoggerPtr logger = Logger::getLogger("IGS.SA");
     static const std::default_random_engine randEng(std::random_device{}());
     static size_t tc = 0;
-    const int M1_WEIGHT = 25;
-    const int M2_WEIGHT = 25;
+    const int M1_WEIGHT = 20;
+    const int M2_WEIGHT = 20;
     const int M3_WEIGHT = 0;
-    const int M4_WEIGHT = 50;
+    const int M4_WEIGHT = 60;
     std::function< unsigned int() > select_op = std::bind(
         std::discrete_distribution<>({M1_WEIGHT, M2_WEIGHT, M3_WEIGHT, M4_WEIGHT}),
         randEng);
@@ -123,44 +116,46 @@ void InputSequenceGenerator::simulatedAnnealing()
         randEng);
     float temperature = 100.0f;
     const float RATE = 0.95f;
-    const int TIMES_PER_ROUND = 200;
+    const int TIMES_PER_ROUND = ( asrtList.size() >=30 ? 300 : ( asrtList.size() >= 20 ? 200 : 100 ) );
+    const int SIMULATED_ANNEALING_ROUND = ( asrtList.size() >=30 ? 30 : ( asrtList.size() >= 20 ? 20 : 10 ) );
     InputSequence opt = finalAnswer;
     size_t localSize = finalAnswer.size();
     std::vector< Assertion* > optOrder;
     int r = 0;
     size_t top1 = failedAssertion.size();
-    for ( int i = 0 ; i < 10  ; ++i ){
-        cout << "SA: " << i << endl;
+    bool updated = false;
+    bool active = false;
+    for (int i = 0; i < SIMULATED_ANNEALING_ROUND; ++i) {
+        updated = false;
         while (temperature > 1.0) {
             LOG4CXX_DEBUG(logger, ++tc << " try");
-
             finalAnswer.erase(finalAnswer.begin() + 2, finalAnswer.end());
             auto rs = rand2(0, asrtList.size());
             int move = select_op();
             switch (move) {
-                case 0: {
-                    finalAnswer[0] = InputPattern::random(IPATTERNSIZE);
-                } break;
-                case 1: {
-                    finalAnswer[1] = InputPattern::random(IPATTERNSIZE).reset();
-                } break;
-                case 2: {
-                    for (auto& state : *this) {
-                        std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
-                    }
-                    for (Assertion* asrt : asrtList) {
-                        path.clear();
-                        asrtFailedFlag = false;
-                        asrt->noSolution = false;
-                        if (!asrt->failed)
+            case 0: {
+                finalAnswer[0] = InputPattern::random(IPATTERNSIZE);
+            } break;
+            case 1: {
+                finalAnswer[1] = InputPattern::random(IPATTERNSIZE).reset();
+            } break;
+            case 2: {
+                for (auto& state : *this) {
+                    std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
+                }
+                for (Assertion* asrt : asrtList) {
+                    path.clear();
+                    asrtFailedFlag = false;
+                    asrt->noSolution = false;
+                    if (!asrt->failed)
                         fromActivatedPoint2AssertionFailed(*asrt);
-                    }
-                } break;
-                case 3: {
-                    // swap
-                    std::swap(asrtList[rs.first], asrtList[rs.second]);
-                } break;
-                default:
+                }
+            } break;
+            case 3: {
+                // swap
+                std::swap(asrtList[rs.first], asrtList[rs.second]);
+            } break;
+            default:
                 std::exit(1);
                 break;
             }
@@ -169,16 +164,17 @@ void InputSequenceGenerator::simulatedAnnealing()
 
             LOG4CXX_DEBUG(logger, "Now length:" << finalAnswer.size());
             // accept
-
             if (top1 < failedAssertion.size()) {
                 localSize = finalAnswer.size();
                 if (opt.size() > finalAnswer.size()) {
                     r = 0;
-                    cout << "Bad solution: " << finalAnswer.size() <<endl;
                     opt = finalAnswer;
                     optOrder = asrtList;
                     top1 = failedAssertion.size();
                     LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
+                    outputAnswer();
+                    updated = true;
+                    active = false;
                 }
             }
             else if (top1 == failedAssertion.size()) {
@@ -188,8 +184,10 @@ void InputSequenceGenerator::simulatedAnnealing()
                         r = 0;
                         opt = finalAnswer;
                         optOrder = asrtList;
-                        cout << "Good solution: " << finalAnswer.size() <<endl;
                         LOG4CXX_DEBUG(logger, "Optimal size update to " << opt.size());
+                        updated = true;
+                        active = false;
+                        outputAnswer();
                     }
                 }
                 else {
@@ -202,27 +200,49 @@ void InputSequenceGenerator::simulatedAnnealing()
                     }
                     else {
                         if (move == 3)
-                        std::swap(asrtList[rs.first], asrtList[rs.second]);
+                            std::swap(asrtList[rs.first], asrtList[rs.second]);
                     }
                 }
             }
-            if (!((r++) % TIMES_PER_ROUND))
-            temperature *= RATE;
+            if (!((r++) % TIMES_PER_ROUND)) {
+                temperature *= RATE;
+                if (active) {
+                    int randTemp = rand() % 10;
+                    if (randTemp >= 7)
+                        finalAnswer[0] = InputPattern::random(IPATTERNSIZE);
+                    else if (randTemp >= 4)
+                        finalAnswer[1] = InputPattern::random(IPATTERNSIZE).reset();
+                    else {
+                        finalAnswer[0] = InputPattern::random(IPATTERNSIZE);
+                        finalAnswer[1] = InputPattern::random(IPATTERNSIZE).reset();
+                    }
+                    for (auto& state : *this) {
+                        std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
+                    }
+                    for (Assertion* asrt : asrtList) {
+                        path.clear();
+                        asrtFailedFlag = false;
+                        asrt->noSolution = false;
+                        if (!asrt->failed)
+                            fromActivatedPoint2AssertionFailed(*asrt);
+                    }
+                }
+            }
         }
+        active = !updated ? true : false;
         temperature = 100;
-        for (auto& state : *this) {
-            std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
+        if (active) {
+            for (auto& state : *this) {
+                std::random_shuffle(state.second->transitions.begin(), state.second->transitions.end());
+            }
+            for (Assertion* asrt : asrtList) {
+                path.clear();
+                asrtFailedFlag = false;
+                asrt->noSolution = false;
+                if (!asrt->failed)
+                    fromActivatedPoint2AssertionFailed(*asrt);
+            }
         }
-        for (Assertion* asrt : asrtList) {
-            path.clear();
-            asrtFailedFlag = false;
-            asrt->noSolution = false;
-            if (!asrt->failed)
-            fromActivatedPoint2AssertionFailed(*asrt);
-        }
-        std::sort(asrtList.begin(), asrtList.end(), [](const Assertion* lhs, const Assertion* rhs) {
-            return lhs->time.first < rhs->time.first;
-        });
     }
     finalAnswer = opt;
 
@@ -244,7 +264,7 @@ void InputSequenceGenerator::fromActivatedPoint2AssertionFailed(Assertion& asrt)
         answerDict[&asrt].clear();
         asrt.arcIt = ap;
         if (signalFlag) {
-            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap->state,ap->transition2->nState, ap->transition1, ap->transition2, 0, bound);
+            res = fromActivatedPoint2AssertionOutputSignalFailed(asrt, answerDict[&asrt], ap->state, ap->transition2->nState, ap->transition1, ap->transition2, 0, bound);
         }
         else {
             res = fromActivatedPoint2AssertionInputSignalFailed(asrt, answerDict[&asrt]);
@@ -380,20 +400,22 @@ void InputSequenceGenerator::generateSolution()
         }
         assertionInspector(finalAnswer);
         if (upcomingAsrt != asrtList.end() && !(*upcomingAsrt)->failed && !(*upcomingAsrt)->noSolution) {
-            int k = 0;
-            for (AssertionStatus& as : triggeredAssertion) {
-                if (as.target == *upcomingAsrt && !as.suc) {
-                    LOG4CXX_DEBUG(logger, "check act " << ++k)
-                    InputSequence seq;
-                    State* nState = finalAnswer.back()._reset ? initial : trans2->nState;
-                    if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, nState, trans1, trans2, as.slack-1, ACT_BOUND)) {
-                        continue;
+            if ((*upcomingAsrt)->event.target == TargetType::OUT) {
+                int k = 0;
+                for (AssertionStatus& as : triggeredAssertion) {
+                    if (as.target == *upcomingAsrt && !as.suc) {
+                        LOG4CXX_DEBUG(logger, "check act " << ++k)
+                        InputSequence seq;
+                        State* nState = finalAnswer.back()._reset ? initial : trans2->nState;
+                        if (!fromActivatedPoint2AssertionOutputSignalFailed(**upcomingAsrt, seq, current, nState, trans1, trans2, as.slack - 1, ACT_BOUND)) {
+                            continue;
+                        }
+                        holder = *upcomingAsrt;
+                        LOG4CXX_DEBUG(logger, format("%1% is picked at act length %2%") % as.target->name % seq.size());
+                        finalAnswer.insert(finalAnswer.end(), ++seq.begin(), seq.end());
+                        LOG4CXX_DEBUG(logger, "gain " << (*upcomingAsrt)->name << ", " << seq.size() - 1 << " plus");
+                        break;
                     }
-                    holder = *upcomingAsrt;
-                    LOG4CXX_DEBUG(logger, format("%1% is picked at act length %2%") % as.target->name % seq.size());
-                    finalAnswer.insert(finalAnswer.end(), ++seq.begin(), seq.end());
-                    LOG4CXX_DEBUG(logger, "gain " << (*upcomingAsrt)->name << ", " << seq.size() - 1 << " plus");
-                    break;
                 }
             }
         }
@@ -445,7 +467,8 @@ void InputSequenceGenerator::assertionInspector(InputSequence& seq)
                         &cur = (signalFlag ? out2 : in2);
                 if (pre[index] != triggerFlag && cur[index] == triggerFlag) {
                     as->suc = true;
-                } else if (as->slack == asrt.time.second) {
+                }
+                else if (as->slack == asrt.time.second) {
                     LOG4CXX_DEBUG(logger, format("%1% has been failed!") % asrt.name);
                     asrt.failed = true;
                     failedAssertion.insert(as->target);
@@ -600,9 +623,11 @@ void InputSequenceGenerator::initial2ActivatedArc()
 
 void InputSequenceGenerator::outputAnswer()
 {
+    std::ofstream output(filename, std::ios::trunc | std::ios::out);
     for (auto pit = finalAnswer.begin(); pit != finalAnswer.end(); ++pit) {
         output << *pit << endl;
     }
+    output.close();
 }
 
 void InputSequenceGenerator::purgeState(int state)
