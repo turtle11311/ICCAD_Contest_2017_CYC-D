@@ -56,7 +56,7 @@ upload: $(BUILDDIR) $(BUILDDIR)/$(BINARY)
 	ssh $(SERVER) "rm -rf ~/$(REMOTEDIR); mkdir -p ~/$(REMOTEDIR)"
 	$(RM) -r test_cases/
 	git checkout -f test_cases/
-	scp -r test_cases/ $(BUILDDIR) Makefile $(SERVER):~/$(REMOTEDIR)
+	scp -r test_cases/ $(BUILDDIR) Makefile plugin/ $(SERVER):~/$(REMOTEDIR)
 	ssh $(SERVER) "cp ~/$(REMOTEDIR)/$(BUILDDIR)/$(BINARY) ~/$(REMOTEDIR)"
 	ssh $(SERVER)
 
